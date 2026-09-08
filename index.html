@@ -1,8 +1,21 @@
 <!DOCTYPE html>
-<html lang="nl" data-theme="light">
+<html lang="nl">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Voorkom themaflits (FOUC) direct voor het laden van stijlen -->
+  <script>
+    (function() {
+      try {
+        var saved = localStorage.getItem('fp_theme');
+        var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var theme = saved || (prefersDark ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', theme);
+      } catch (e) {}
+    })();
+  </script>
+
   <title>Dagboekje — Futureproof met AI</title>
   <meta name="description" content="Minimalistisch digitaal reflectiedagboek voor de minor Futureproof met AI aan de Hogeschool Utrecht.">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%234a78a6%22 stroke-width=%222%22><path d=%22M4 19.5A2.5 2.5 0 0 1 6.5 17H20%22/><path d=%22M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z%22/></svg>">
@@ -98,10 +111,10 @@
         </div>
       </header>
 
-      <!-- Spreuk van de Dag (Verfijnd & instant wisselend) -->
+      <!-- Spreuk van de Dag -->
       <section class="quote-banner">
         <div class="quote-left">
-          <span class="quote-mark">“</span>
+          <span class="quote-badge">Citaat</span>
           <span class="quote-text" id="daily-quote-text">AI neemt jouw werk niet over, maar degene die AI goed weet te gebruiken wel.</span>
           <span class="quote-author" id="daily-quote-author">— Gert van Hardeveld</span>
         </div>

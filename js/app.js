@@ -215,16 +215,25 @@ function renderSidebarDaysList() {
   });
 }
 
+function autoGrowTextarea(textarea) {
+  if (!textarea) return;
+  textarea.style.height = 'auto';
+  textarea.style.height = `${Math.max(120, textarea.scrollHeight)}px`;
+}
+
 function initQuestions() {
   const container = document.getElementById('questions-container');
   if (!container) return;
 
   let html = '';
-  journalQuestions.forEach(q => {
+  journalQuestions.forEach((q, idx) => {
     html += `
       <div class="prompt-column" id="col-${q.id}">
         <div class="prompt-column-header">
-          <label for="input-${q.id}" class="prompt-title">${q.title}</label>
+          <label for="input-${q.id}" class="prompt-title">
+            <span class="prompt-step-num">${idx + 1}</span>
+            <span>${q.title}</span>
+          </label>
         </div>
         <textarea 
           id="input-${q.id}" 
@@ -241,6 +250,7 @@ function initQuestions() {
     const textarea = document.getElementById(`input-${q.id}`);
     if (textarea) {
       textarea.addEventListener('input', () => {
+        autoGrowTextarea(textarea);
         triggerAutoSave();
       });
     }
@@ -325,6 +335,7 @@ function loadEntryForDate(dateStr) {
     const textarea = document.getElementById(`input-${q.id}`);
     if (textarea) {
       textarea.value = entry[q.id] || '';
+      autoGrowTextarea(textarea);
     }
   });
 
