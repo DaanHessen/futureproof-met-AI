@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Digitaal Dagboek | Minor Futureproof met AI!</title>
-  <meta name="description" content="Persoonlijk minimalistisch reflectie- en leerdagboek voor de minor Futureproof met AI aan de Hogeschool Utrecht met lokale SQLite database.">
+  <title>Dagboekje — Futureproof met AI</title>
+  <meta name="description" content="Minimalistisch digitaal dagboek voor de minor Futureproof met AI aan de Hogeschool Utrecht.">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✨</text></svg>">
 
   <!-- Typografie: Plus Jakarta Sans & JetBrains Mono -->
@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap" rel="stylesheet">
 
-  <!-- Externe SheetJS library voor native .xlsx Excel export -->
+  <!-- SheetJS voor Excel export -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
 
   <!-- Stijlen -->
@@ -20,345 +20,220 @@
 </head>
 <body>
 
-  <!-- Bovenbalk / Header -->
-  <header class="site-header">
-    <div class="header-inner">
-      <div class="brand-group">
-        <span class="brand-logo-icon">AI</span>
-        <h1 class="brand-title">Dagboekje</h1>
-        <span class="brand-tag">Futureproof met AI!</span>
-      </div>
-
-      <div class="header-stats">
-        <div class="header-stat-chip" title="Aantal aaneengesloten ingevulde dagen">
-          <span>🔥</span>
-          <span><strong id="header-streak-count">0</strong> streak</span>
+  <div class="app-shell">
+    
+    <!-- Linkerpaneel: Dagenoverzicht, Navigatie & Database -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-brand">
+          <h1>Dagboekje</h1>
+          <span class="brand-subtitle">Futureproof met AI • HU</span>
         </div>
-        <div class="header-stat-chip" title="Totaal aantal geregistreerde dagboekdagen">
-          <span>📝</span>
-          <span><strong id="header-total-days">0</strong> dagen</span>
-        </div>
-      </div>
-
-      <div class="header-actions">
-        <!-- SQLite Database Inspector Knop (Slide 15) -->
-        <button type="button" class="btn-database" id="db-inspect-btn" title="Bekijk SQLite Database (tabellen & users)">
-          <span>🗄️</span>
-          <span>Database</span>
-        </button>
-
-        <!-- Excel Export Knop (Slide 7) -->
-        <button type="button" class="btn-primary-sm" id="export-excel-btn" title="Exporteer dagboek entries naar Excel">
-          <span>📊</span>
-          <span>Excel</span>
-        </button>
-
-        <!-- Gebruiker / Inloggen (Slide 15) -->
-        <div class="user-auth-badge" id="user-auth-badge">
-          <button type="button" class="btn-auth" id="auth-btn">
-            <span>👤</span>
-            <span id="auth-btn-label">Inloggen</span>
+        <div class="sidebar-actions">
+          <button type="button" class="btn-sidebar-icon" id="today-btn" title="Vandaag">📅</button>
+          <button type="button" class="btn-sidebar-icon" id="db-inspect-btn" title="SQLite Database inspecteren">🗄️</button>
+          <button type="button" class="btn-sidebar-icon" id="export-excel-btn" title="Exporteer naar Excel">📊</button>
+          <button type="button" class="btn-sidebar-icon" id="theme-toggle-btn" title="Thema wisselen">
+            <span id="theme-toggle-icon">🌙</span>
           </button>
         </div>
+      </div>
 
-        <button type="button" class="btn-icon" id="settings-btn" title="Instellingen & API Key" aria-label="Instellingen">
-          ⚙️
-        </button>
-        <button type="button" class="btn-icon" id="theme-toggle-btn" title="Wissel lichte / donkere modus" aria-label="Thema wisselen">
-          <span id="theme-toggle-icon">🌙</span>
+      <div class="sidebar-section-title">
+        <span>Recente dagen</span>
+        <span class="streak-pill" title="Aaneengesloten dagen ingevuld">🔥 <strong id="header-streak-count">0</strong> streak</span>
+      </div>
+
+      <!-- Scrolbare lijst met recente dagen -->
+      <nav class="sidebar-days-list" id="sidebar-days-list">
+        <!-- Dynamisch gevuld door app.js -->
+      </nav>
+
+      <!-- Onderkant zijbalk: 10-dagen mood curve & gebruiker -->
+      <div class="sidebar-footer">
+        <div id="sidebar-mood-chart">
+          <!-- Dynamisch gevuld door mood-chart.js -->
+        </div>
+        <button type="button" class="sidebar-user-btn" id="auth-btn">
+          <span>👤</span>
+          <strong id="auth-btn-label">Inloggen / Registreren</strong>
         </button>
       </div>
-    </div>
-  </header>
+    </aside>
 
-  <!-- Hoofdinhoud -->
-  <main class="main-container">
-
-    <!-- 1. AI Spreuk van de Dag (Hero) -->
-    <article class="quote-hero-card" id="quote-hero-card" aria-label="Spreuk van de dag">
-      <div class="quote-card-header">
-        <div class="quote-badge-group">
-          <span class="quote-pill">✨ Spreuk van de Dag</span>
-          <span class="quote-theme-tag" id="daily-quote-theme">Futureproof</span>
+    <!-- Rechterpaneel: Schrijfruimte (volledige viewport) -->
+    <main class="main-content">
+      
+      <!-- Content Header -->
+      <header class="content-header">
+        <div class="date-nav-cluster">
+          <button type="button" class="btn-arrow" id="prev-day-btn" title="Vorige dag">←</button>
+          <h2 class="header-date-text" id="active-date-heading">Vandaag</h2>
+          <span class="date-badge is-today" id="active-date-badge">Vandaag</span>
+          <button type="button" class="btn-arrow" id="next-day-btn" title="Volgende dag">→</button>
         </div>
-        <button type="button" class="btn-refresh-quote" id="refresh-quote-btn" title="Vraag een nieuwe inspirerende spreuk op">
-          <span class="refresh-icon">↻</span>
+
+        <div class="header-meta-right">
+          <span class="save-pill" id="save-status-pill">Opgeslagen ✓</span>
+          <input type="date" id="journal-date-picker" class="date-input-flat">
+        </div>
+      </header>
+
+      <!-- Spreuk van de Dag (Discreet, verfijnd & instant verversing) -->
+      <section class="quote-banner">
+        <div class="quote-left">
+          <span class="quote-text" id="daily-quote-text">“AI neemt jouw werk niet over, maar degene die AI goed weet te gebruiken wel.”</span>
+          <span class="quote-author" id="daily-quote-author">— Gert van Hardeveld</span>
+        </div>
+        <button type="button" class="btn-refresh-quote" id="refresh-quote-btn" title="Volgende inspirerende spreuk">
+          <span>↻</span>
           <span>Nieuwe spreuk</span>
         </button>
-      </div>
-      <blockquote class="quote-body" id="daily-quote-text">
-        “AI neemt jouw werk niet over, maar degene die AI goed weet te gebruiken wel.”
-      </blockquote>
-      <div class="quote-footer">
-        <span class="quote-author-dash">—</span>
-        <cite id="daily-quote-author">Gert van Hardeveld</cite>
-      </div>
-    </article>
+      </section>
 
-    <!-- 2. Datumselectie & Navigatiestrip -->
-    <section class="date-nav-section" aria-label="Datumselectie">
-      <div class="date-bar-top">
-        <div class="date-heading-group">
-          <h2 class="active-date-heading" id="active-date-heading">Vandaag</h2>
-          <span class="date-badge is-today" id="active-date-badge">Vandaag</span>
+      <!-- Schrijfruimte met de 3 vragen en mood selector -->
+      <div class="editor-scroll-pane">
+        
+        <!-- Mood Check-in -->
+        <section class="mood-checkin-row">
+          <span class="mood-prompt-label">Hoe gaat het vandaag?</span>
+          <div class="mood-stars-wrapper" id="mood-stars-group">
+            <!-- 5 sterren buttons -->
+          </div>
+          <span class="mood-status-label" id="mood-status-label">Kies een score (1 tot 5)</span>
+        </section>
+
+        <!-- 3 Modulaire Reflectievragen -->
+        <div id="questions-container" style="display: flex; flex-direction: column; gap: 1.5rem;">
+          <!-- Dynamisch gerenderd vanuit js/questions.js -->
         </div>
-        <div class="date-controls">
-          <button type="button" class="btn-icon" id="prev-day-btn" title="Vorige dag (Alt + Links)" aria-label="Vorige dag">←</button>
-          <label class="date-picker-label" title="Kies een specifieke datum">
-            <input type="date" id="journal-date-picker" class="journal-date-picker-input">
-          </label>
-          <button type="button" class="btn-icon" id="next-day-btn" title="Volgende dag (Alt + Rechts)" aria-label="Volgende dag">→</button>
-          <button type="button" class="btn-today" id="today-btn" style="display: none;">Vandaag</button>
-        </div>
+
       </div>
+    </main>
 
-      <!-- Snelle datumstrip van de afgelopen 7 dagen -->
-      <div class="date-strip-scroll" id="date-strip-container" role="tablist" aria-label="Kies een dag uit de afgelopen week">
-        <!-- Dynamisch gevuld door app.js -->
-      </div>
-    </section>
-
-    <!-- 3. Gemoedstoestand / Mood Check-in (1-5 sterren) -->
-    <section class="mood-card" aria-label="Gemoedstoestand van vandaag">
-      <div class="mood-card-header">
-        <h3 class="mood-title">
-          <span>🎯</span>
-          <span>Hoe gaat het vandaag?</span>
-        </h3>
-        <span class="save-status-pill" id="save-status-pill">Opgeslagen ✓</span>
-      </div>
-
-      <div class="mood-stars-group" id="mood-stars-group" role="radiogroup" aria-label="Score van 1 tot 5 sterren">
-        <!-- Dynamisch gegenereerd door app.js -->
-      </div>
-
-      <div class="mood-status-label" id="mood-status-label">
-        Klik op een ster om je gemoedstoestand aan te geven (1-5)
-      </div>
-    </section>
-
-    <!-- 4. Modulaire Vragen (Gisteren gedaan, Gisteren geleerd, Vandaag doen) -->
-    <div class="questions-container" id="questions-container">
-      <!-- Dynamisch gegenereerd vanuit js/questions.js -->
-    </div>
-
-    <!-- 5. 10-Dagen Gemoedstoestand Horizon (Trend & Moodswings) -->
-    <section class="chart-section" id="mood-chart-container" aria-label="Gemoedstoestand grafiek afgelopen 10 dagen">
-      <!-- Dynamisch gerenderd door js/mood-chart.js -->
-    </section>
-
-  </main>
-
-  <!-- Voettekst -->
-  <footer class="site-footer">
-    <div class="footer-inner">
-      <div class="footer-brand">
-        <strong>Minor Futureproof met AI!</strong> • Hogeschool Utrecht
-        <div class="footer-sub">Persoonlijk digitaal leerdagboek &amp; reflectieportaal</div>
-      </div>
-      <div class="footer-links">
-        <button type="button" class="footer-btn" id="footer-db-btn">🗄️ SQLite Database</button>
-        <button type="button" class="footer-btn" id="footer-seed-btn">⚡ 5 Entries toevoegen</button>
-      </div>
-    </div>
-  </footer>
+  </div>
 
   <!-- Modal: SQLite Database Inspector (Slide 15) -->
   <div class="modal-backdrop" id="db-modal" role="dialog" aria-modal="true" aria-labelledby="db-modal-title">
     <div class="modal-card modal-card-wide">
       <div class="modal-header">
-        <div class="db-modal-title-group">
-          <h4 class="modal-title" id="db-modal-title">🗄️ SQLite Database Inspector</h4>
-          <span class="db-path-badge" id="db-path-label">dagboek.sqlite</span>
-        </div>
-        <button type="button" class="btn-close-modal" id="close-db-modal" aria-label="Sluiten">✕</button>
+        <h4 class="modal-title" id="db-modal-title">🗄️ SQLite Database (<span id="db-path-label">dagboek.sqlite</span>)</h4>
+        <button type="button" class="btn-close" id="close-db-modal">✕</button>
       </div>
 
-      <div class="db-toolbar">
-        <div class="db-tabs">
-          <button type="button" class="db-tab-btn is-active" data-tab="entries">
-            📝 entries (<span id="db-entries-count">0</span>)
+      <div class="db-tabs-bar">
+        <div class="db-tab-group">
+          <button type="button" class="db-tab is-active" data-tab="entries">
+            entries (<span id="db-entries-count">0</span>)
           </button>
-          <button type="button" class="db-tab-btn" data-tab="users">
-            👥 users (<span id="db-users-count">0</span>)
+          <button type="button" class="db-tab" data-tab="users">
+            users (<span id="db-users-count">0</span>)
           </button>
-          <button type="button" class="db-tab-btn" data-tab="sql">
-            ⚡ SQL Console
+          <button type="button" class="db-tab" data-tab="sql">
+            SQL Console
           </button>
         </div>
 
-        <div class="db-actions-right">
-          <button type="button" class="btn-secondary-sm" id="btn-seed-5-entries" title="Maak 5 voorbeeld-entries aan conform Slide 15">
-            + 5 Entries aanmaken
+        <div style="display: flex; gap: 0.35rem;">
+          <button type="button" class="btn-secondary" id="btn-seed-5-entries" style="font-size: 0.75rem;">
+            + 5 Entries toevoegen
           </button>
-          <a href="/api/db/download" download="dagboek.sqlite" class="btn-secondary-sm" id="btn-download-sqlite" title="Download .sqlite bestand">
-            💾 Download DB
+          <a href="/api/db/download" download="dagboek.sqlite" class="btn-secondary" style="font-size: 0.75rem; text-decoration: none;">
+            💾 Download .sqlite
           </a>
         </div>
       </div>
 
-      <div class="modal-body db-modal-body">
-        <!-- Tab 1: Entries Tabel -->
-        <div class="db-tab-content is-active" id="tab-content-entries">
-          <div class="db-table-wrapper">
-            <table class="db-table" id="db-entries-table">
-              <thead>
-                <tr>
-                  <th>id</th>
-                  <th>datum</th>
-                  <th>mood</th>
-                  <th>gisteren gedaan</th>
-                  <th>gisteren geleerd</th>
-                  <th>vandaag doen</th>
-                  <th>bijgewerkt</th>
-                </tr>
-              </thead>
-              <tbody id="db-entries-tbody">
-                <tr><td colspan="7" class="td-empty">Laden...</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
+      <!-- Tab Inhoud -->
+      <div id="tab-content-entries" class="db-table-scroll">
+        <table class="db-table">
+          <thead>
+            <tr>
+              <th>id</th>
+              <th>datum</th>
+              <th>mood</th>
+              <th>gisteren gedaan</th>
+              <th>gisteren geleerd</th>
+              <th>vandaag doen</th>
+              <th>bijgewerkt</th>
+            </tr>
+          </thead>
+          <tbody id="db-entries-tbody">
+            <tr><td colspan="7" style="text-align: center; padding: 2rem;">Laden...</td></tr>
+          </tbody>
+        </table>
+      </div>
 
-        <!-- Tab 2: Users Tabel (Slide 15 item 6: 'kun je jezelf terugvinden') -->
-        <div class="db-tab-content" id="tab-content-users">
-          <div class="db-table-wrapper">
-            <table class="db-table" id="db-users-table">
-              <thead>
-                <tr>
-                  <th>id</th>
-                  <th>email</th>
-                  <th>naam</th>
-                  <th>aangemaakt op</th>
-                </tr>
-              </thead>
-              <tbody id="db-users-tbody">
-                <tr><td colspan="4" class="td-empty">Laden...</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
+      <div id="tab-content-users" class="db-table-scroll" style="display: none;">
+        <table class="db-table">
+          <thead>
+            <tr>
+              <th>id</th>
+              <th>email</th>
+              <th>naam</th>
+              <th>geregistreerd</th>
+            </tr>
+          </thead>
+          <tbody id="db-users-tbody">
+            <tr><td colspan="4" style="text-align: center; padding: 2rem;">Laden...</td></tr>
+          </tbody>
+        </table>
+      </div>
 
-        <!-- Tab 3: SQL Console -->
-        <div class="db-tab-content" id="tab-content-sql">
-          <div class="sql-console-wrapper">
-            <div class="sql-input-row">
-              <input type="text" id="sql-query-input" class="sql-query-input" value="SELECT * FROM entries ORDER BY date DESC LIMIT 10;">
-              <button type="button" class="btn-primary" id="btn-run-sql">Query Uitvoeren</button>
-            </div>
-            <div class="sql-results-area" id="sql-results-area">
-              <div class="sql-empty-hint">Druk op "Query Uitvoeren" om data rechtstreeks op te vragen met SQL.</div>
-            </div>
-          </div>
+      <div id="tab-content-sql" style="display: none; flex-direction: column; gap: 0.5rem;">
+        <div style="display: flex; gap: 0.5rem;">
+          <input type="text" id="sql-query-input" class="form-input" value="SELECT id, date, mood, yesterday_done FROM entries LIMIT 10;">
+          <button type="button" class="btn-primary" id="btn-run-sql">Query Uitvoeren</button>
+        </div>
+        <div id="sql-results-area" class="db-table-scroll" style="min-height: 120px;">
+          <div style="padding: 1rem; color: var(--text-muted); font-size: 0.8rem;">Druk op Query Uitvoeren.</div>
         </div>
       </div>
 
-      <div class="modal-footer">
+      <div style="display: flex; justify-content: flex-end; margin-top: 0.5rem;">
         <button type="button" class="btn-secondary" id="close-db-modal-btn">Sluiten</button>
       </div>
     </div>
   </div>
 
-  <!-- Modal: Inloggen & Registreren (Slide 15 item 2 & 3) -->
+  <!-- Modal: Inloggen & Registreren (Slide 15) -->
   <div class="modal-backdrop" id="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
     <div class="modal-card">
       <div class="modal-header">
-        <h4 class="modal-title" id="auth-modal-title">Account &amp; Database Login</h4>
-        <button type="button" class="btn-close-modal" id="close-auth-modal" aria-label="Sluiten">✕</button>
+        <h4 class="modal-title" id="auth-modal-title">Account (SQLite)</h4>
+        <button type="button" class="btn-close" id="close-auth-modal">✕</button>
       </div>
 
-      <div class="auth-tabs">
-        <button type="button" class="auth-tab-btn is-active" id="auth-tab-login">Inloggen</button>
-        <button type="button" class="auth-tab-btn" id="auth-tab-register">Registreren (zonder email)</button>
+      <div style="display: flex; border-bottom: 1px solid var(--border); margin-bottom: 1rem;">
+        <button type="button" class="db-tab is-active" id="auth-tab-login" style="flex: 1; text-align: center;">Inloggen</button>
+        <button type="button" class="db-tab" id="auth-tab-register" style="flex: 1; text-align: center;">Registreren (zonder email)</button>
       </div>
 
-      <form id="auth-form" class="modal-body">
-        <div class="form-group" id="group-auth-name" style="display: none;">
-          <label for="auth-name-input" class="form-label">Naam (optioneel):</label>
+      <form id="auth-form">
+        <div class="form-field" id="group-auth-name" style="display: none;">
+          <label for="auth-name-input" class="form-label">Naam:</label>
           <input type="text" id="auth-name-input" class="form-input" placeholder="Daan Hessen">
         </div>
 
-        <div class="form-group">
+        <div class="form-field">
           <label for="auth-email-input" class="form-label">E-mailadres:</label>
           <input type="email" id="auth-email-input" class="form-input" required placeholder="daan@student.hu.nl">
         </div>
 
-        <div class="form-group">
+        <div class="form-field">
           <label for="auth-password-input" class="form-label">Wachtwoord:</label>
           <input type="password" id="auth-password-input" class="form-input" required placeholder="••••••••">
         </div>
 
-        <div id="auth-message-box" class="auth-message-box" style="display: none;"></div>
+        <div id="auth-message-box" style="display: none; padding: 0.5rem; font-size: 0.8rem; margin-bottom: 0.75rem; border-radius: var(--radius-sm);"></div>
 
-        <div class="modal-footer" style="padding-top: 0.5rem;">
-          <button type="button" class="btn-secondary" id="quick-demo-auth-btn" title="Vul voorbeeldgegevens van Daan in">
-            ⚡ Snelle demo login
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem;">
+          <button type="button" class="btn-secondary" id="quick-demo-auth-btn" style="font-size: 0.75rem;">
+            ⚡ Demo account
           </button>
           <button type="submit" class="btn-primary" id="auth-submit-btn">Inloggen</button>
         </div>
       </form>
-    </div>
-  </div>
-
-  <!-- Modal: Excel Export -->
-  <div class="modal-backdrop" id="export-modal" role="dialog" aria-modal="true" aria-labelledby="export-modal-title">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h4 class="modal-title" id="export-modal-title">Dagboek Exporteren</h4>
-        <button type="button" class="btn-close-modal" id="close-export-modal" aria-label="Sluiten">✕</button>
-      </div>
-      <div class="modal-body">
-        <p>Download een compleet overzicht van al je opgeslagen dagboeknotities, inclusief data, gemoedstoestand en reflecties.</p>
-        
-        <div class="export-option-card">
-          <div class="export-option-info">
-            <h5>Microsoft Excel (.xlsx)</h5>
-            <p>Direct gereed voor Excel met automatische kolombreedtes en opmaak.</p>
-          </div>
-          <button type="button" class="btn-primary" id="confirm-export-xlsx">Download .xlsx</button>
-        </div>
-
-        <div class="export-option-card">
-          <div class="export-option-info">
-            <h5>Nederlands CSV-bestand (.csv)</h5>
-            <p>Geformatteerd met puntkomma's (;) en UTF-8 BOM voor probleemloze import.</p>
-          </div>
-          <button type="button" class="btn-secondary" id="confirm-export-csv">Download .csv</button>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn-secondary" id="cancel-export-modal-btn">Annuleren</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal: Instellingen & API Key -->
-  <div class="modal-backdrop" id="settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h4 class="modal-title" id="settings-modal-title">Instellingen &amp; AI-koppeling</h4>
-        <button type="button" class="btn-close-modal" id="close-settings-modal" aria-label="Sluiten">✕</button>
-      </div>
-      <div class="modal-body">
-        <div class="form-group">
-          <label for="settings-gemini-key" class="form-label">Google Gemini API Key (optioneel):</label>
-          <input type="password" id="settings-gemini-key" class="form-input" placeholder="AIzaSy...">
-          <p class="form-hint">
-            Bij deploy op <strong>Vercel</strong> stel je deze veilig in via de Vercel Environment Variables als <code>GEMINI_API_KEY</code>. 
-            Gebruik je de app lokaal zonder Vercel? Dan kun je hier optioneel je eigen sleutel opslaan in je browser.
-          </p>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Dataopslag:</label>
-          <p class="form-hint">
-            Dit project gebruikt een <strong>lokale SQLite database</strong> (<code>dagboek.sqlite</code>) op de achtergrond én synchroon <strong>LocalStorage</strong> in je browser voor optimale snelheid en privacy.
-          </p>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn-secondary" id="close-settings-modal-btn">Sluiten</button>
-        <button type="button" class="btn-primary" id="save-settings-btn">Opslaan</button>
-      </div>
     </div>
   </div>
 

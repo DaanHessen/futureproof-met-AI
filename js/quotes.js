@@ -1,224 +1,149 @@
 /**
  * js/quotes.js
- * Afhandeling van de "Spreuk van de Dag" via Google Gemini AI
- * met serverless Vercel fallback en een rijke ingebouwde verzameling.
+ * Snelle, betrouwbare spreuk van de dag met directe rotatie en optionele AI verrijking.
  */
 
 import { getSettings } from './storage.js';
 
-// Samengestelde verzameling inspirerende Nederlandstalige spreuken over AI, tech en persoonlijke groei
-const CURATED_QUOTES = [
+export const QUOTES = [
   {
     spreuk: "AI neemt jouw werk niet over, maar degene die AI goed weet te gebruiken wel.",
     auteur: "Gert van Hardeveld",
     thema: "Futureproof"
   },
   {
-    spreuk: "We kunnen alleen een korte afstand vooruitzien, maar we zien daar genoeg dat gedaan moet worden.",
-    auteur: "Alan Turing",
-    thema: "Innovatie"
-  },
-  {
-    spreuk: "De beste manier om de toekomst te voorspellen is om deze zelf te creëren.",
-    auteur: "Alan Kay",
-    thema: "Creatie"
-  },
-  {
-    spreuk: "Niet wat ons overkomt bepaalt onze dag, maar hoe we ervoor kiezen erop te reageren.",
-    auteur: "Epictetus",
-    thema: "Veerkracht"
-  },
-  {
-    spreuk: "Eenvoud is de ultieme vorm van verfijning.",
+    spreuk: "Eenvoud is de ultieme vorm van perfectie.",
     auteur: "Leonardo da Vinci",
     thema: "Focus"
   },
   {
-    spreuk: "Blijf hongerig naar nieuwe kennis, blijf dwaas genoeg om fouten te durven maken.",
+    spreuk: "We kunnen slechts een korte afstand vooruitzien, maar we zien genoeg dat gedaan moet worden.",
+    auteur: "Alan Turing",
+    thema: "Innovatie"
+  },
+  {
+    spreuk: "Niet wat er gebeurt bepaalt je dag, maar hoe je ervoor kiest erop te reageren.",
+    auteur: "Epictetus",
+    thema: "Veerkracht"
+  },
+  {
+    spreuk: "De beste manier om de toekomst te voorspellen is om haar zelf te ontwerpen.",
+    auteur: "Alan Kay",
+    thema: "Creatie"
+  },
+  {
+    spreuk: "Blijf nieuwsgierig naar nieuwe ideeën, blijf moedig genoeg om te proberen.",
     auteur: "Steve Jobs",
     thema: "Groei"
   },
   {
-    spreuk: "Technologie is op haar krachtigst wanneer zij de menselijke nieuwsgierigheid versterkt, niet vervangt.",
+    spreuk: "Technologie is op haar mooist wanneer zij menselijke intelligentie versterkt in plaats van vervangt.",
     auteur: "Ada Lovelace",
     thema: "Mens & AI"
   },
   {
-    spreuk: "De kunst van vooruitgang is niet het vermijden van fouten, maar de snelheid waarmee je ervan leert.",
-    auteur: "John Dewey",
-    thema: "Reflectie"
+    spreuk: "Rust in je hoofd brengt helderheid in je keuzes en richting in je werk.",
+    auteur: "Marcus Aurelius",
+    thema: "Rust"
   },
   {
-    spreuk: "Begin vandaag met wat nodig is, doe dan wat mogelijk is, en plotseling doe je het onmogelijke.",
+    spreuk: "Begin met wat nodig is, doe dan wat mogelijk is, en je bereikt wat eerst onbereikbaar leek.",
     auteur: "Franciscus van Assisi",
     thema: "Actie"
   },
   {
-    spreuk: "Een dag niet gereflecteerd is een dag voorbijgegaan zonder richting.",
+    spreuk: "Een dag met bewuste reflectie geeft richting aan alle dagen die volgen.",
     auteur: "Socrates",
-    thema: "Inzicht"
+    thema: "Reflectie"
   },
   {
-    spreuk: "Wie vragen stelt en durft te experimenteren, bezit de sleutel tot innovatie.",
+    spreuk: "Wie durft te experimenteren en fouten omarmt als feedback, leert het snelst.",
     auteur: "Grace Hopper",
-    thema: "Experimenteren"
+    thema: "Leren"
   },
   {
-    spreuk: "Kleine dagelijkse overwinningen leiden op den duur tot buitengewone meesterschap.",
-    auteur: "Robin Sharma",
-    thema: "Consistentie"
-  },
-  {
-    spreuk: "Vibe coding is geen luiheid, het is het orchestreren van intelligentie met de juiste visie.",
+    spreuk: "Vibe coding is het orchestreren van intelligentie met een heldere visie en smaak.",
     auteur: "AI Wijsheid",
     thema: "Vibe Coding"
   },
   {
-    spreuk: "Rust in je hoofd brengt helderheid in je code en richting in je werk.",
-    auteur: "Marcus Aurelius",
-    thema: "Mentale Rust"
-  },
-  {
-    spreuk: "De vraag is niet of machines kunnen denken, maar of mensen dat nog willen blijven doen.",
-    auteur: "B.F. Skinner",
-    thema: "Kritisch Denken"
+    spreuk: "Kleine dagelijkse stappen leveren op termijn buitengewone resultaten op.",
+    auteur: "James Clear",
+    thema: "Consistentie"
   }
 ];
 
-let lastQuoteIndex = -1;
+let currentIndex = 0;
 
 /**
- * Haal de spreuk van de dag op (met caching per datum in localStorage).
- * @param {string} dateStr 
- * @param {boolean} forceNew 
- * @returns {Promise<{ spreuk: string, auteur: string, thema: string, source: string }>}
+ * Haal direct de spreuk op voor een datum.
+ * Schakelt bij 'forceNew' onmiddellijk over naar de volgende spreuk (0ms vertraging!).
  */
-export async function getDailyQuote(dateStr, forceNew = false) {
+export function getDailyQuote(dateStr, forceNew = false) {
   const cacheKey = `fp_quote_${dateStr}`;
-  
+
   if (!forceNew) {
     try {
       const cached = localStorage.getItem(cacheKey);
       if (cached) {
         return JSON.parse(cached);
       }
-    } catch (e) {
-      // negeer cache fouten
+    } catch (e) {}
+  }
+
+  // Bepaal index op basis van datum of volgende in de rij
+  if (forceNew) {
+    currentIndex = (currentIndex + 1) % QUOTES.length;
+  } else {
+    // Deterministic op basis van datum
+    let hash = 0;
+    for (let i = 0; i < dateStr.length; i++) {
+      hash = (hash << 5) - hash + dateStr.charCodeAt(i);
+      hash |= 0;
     }
+    currentIndex = Math.abs(hash) % QUOTES.length;
   }
 
-  // Probeer via Vercel serverless function of directe Gemini API
-  let quote = null;
-
-  try {
-    quote = await fetchFromVercelApi();
-  } catch (err) {
-    // Probeer directe browser API call als de gebruiker een Gemini key heeft ingesteld
-    try {
-      quote = await fetchFromClientGemini();
-    } catch (err2) {
-      // Fallback op gecureerde lijst
-      quote = getRandomCuratedQuote();
-    }
-  }
-
-  if (!quote) {
-    quote = getRandomCuratedQuote();
-  }
+  const quote = QUOTES[currentIndex];
 
   try {
     localStorage.setItem(cacheKey, JSON.stringify(quote));
-  } catch (e) {
-    // negeer opslagfout
-  }
+  } catch (e) {}
+
+  // Probeer optioneel op de achtergrond Gemini aan te roepen als die beschikbaar is
+  tryFetchGeminiInBackground(dateStr, cacheKey);
 
   return quote;
 }
 
 /**
- * Roep de Vercel Serverless Function `/api/spreuk` aan.
+ * Optionele achtergrondaanroep naar Gemini zonder de UI ooit te blokkeren
  */
-async function fetchFromVercelApi() {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 6000);
-
-  const res = await fetch('/api/spreuk', {
-    method: 'GET',
-    headers: { 'Accept': 'application/json' },
-    signal: controller.signal
-  });
-
-  clearTimeout(timeoutId);
-
-  if (!res.ok) {
-    throw new Error(`API HTTP error: ${res.status}`);
-  }
-
-  const data = await res.json();
-  if (data && data.spreuk) {
-    return {
-      spreuk: data.spreuk,
-      auteur: data.auteur || 'Google Gemini AI',
-      thema: data.thema || 'AI Wijsheid',
-      source: 'gemini-vercel'
-    };
-  }
-  throw new Error('Ongeldig API antwoord');
-}
-
-/**
- * Directe client-side call naar Gemini als de student een API key heeft ingevuld in instellingen.
- */
-async function fetchFromClientGemini() {
+async function tryFetchGeminiInBackground(dateStr, cacheKey) {
   const settings = getSettings();
-  const apiKey = settings.geminiApiKey ? settings.geminiApiKey.trim() : '';
+  const apiKey = settings.geminiApiKey;
 
-  if (!apiKey) {
-    throw new Error('Geen client API key beschikbaar');
-  }
+  // Alleen als er lokaal een key is of Vercel serverless draait
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 1200);
 
-  const prompt = "Genereer een unieke, korte, inspirerende spreuk van de dag in het Nederlands, passend voor een HBO-student in AI en technologie. Geef UITSLUITEND een valide JSON-object terug zonder markdown tags: {\"spreuk\": \"...\", \"auteur\": \"...\", \"thema\": \"...\"}";
+    const res = await fetch('/api/spreuk', { signal: controller.signal });
+    clearTimeout(timeout);
 
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-
-  const res = await fetch(endpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: {
-        responseMimeType: "application/json",
-        temperature: 0.8
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.spreuk && data.source === 'gemini') {
+        const geminiQuote = {
+          spreuk: data.spreuk,
+          auteur: data.auteur || 'Google Gemini AI',
+          thema: data.thema || 'AI Inzicht'
+        };
+        localStorage.setItem(cacheKey, JSON.stringify(geminiQuote));
+        window.dispatchEvent(new CustomEvent('dagboek:quote-updated', { detail: geminiQuote }));
       }
-    })
-  });
-
-  if (!res.ok) throw new Error('Client Gemini call gefaald');
-
-  const data = await res.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  const parsed = JSON.parse(text);
-
-  return {
-    spreuk: parsed.spreuk,
-    auteur: parsed.auteur || 'Google Gemini AI',
-    thema: parsed.thema || 'AI Inzicht',
-    source: 'gemini-direct'
-  };
-}
-
-/**
- * Haal een willekeurige spreuk uit de lokale collectie.
- */
-function getRandomCuratedQuote() {
-  let idx;
-  do {
-    idx = Math.floor(Math.random() * CURATED_QUOTES.length);
-  } while (idx === lastQuoteIndex && CURATED_QUOTES.length > 1);
-
-  lastQuoteIndex = idx;
-  return {
-    ...CURATED_QUOTES[idx],
-    source: 'curated'
-  };
+    }
+  } catch (e) {
+    // Geen probleem, de ingebouwde spreuk staat al klaar
+  }
 }
