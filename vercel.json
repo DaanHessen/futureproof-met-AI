@@ -1,8 +1,3 @@
 {
-  "cleanUrls": true,
-  "rewrites": [
-    { "source": "/api/spreuk", "destination": "/api/spreuk.js" },
-    { "source": "/api/db", "destination": "/api/db.js" },
-    { "source": "/api/db/(.*)", "destination": "/api/db.js" }
-  ]
+  "cleanUrls": true
 }

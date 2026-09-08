@@ -1,5 +1,5 @@
-server.js
-db.js
+server/
+server/**
 *.sqlite
 *.sqlite*
 dagboek.sqlite

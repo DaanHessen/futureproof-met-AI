@@ -11,7 +11,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DB_PATH = path.join(__dirname, 'dagboek.sqlite');
+const ROOT_DIR = path.resolve(__dirname, '..');
+const DB_PATH = path.join(ROOT_DIR, 'dagboek.sqlite');
 
 // Initialiseer SQLite database bestand
 export const db = new DatabaseSync(DB_PATH);

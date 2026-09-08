@@ -25,6 +25,7 @@ import {
 } from './db.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const ROOT_DIR = path.resolve(__dirname, '..');
 const PORT = process.env.PORT || 3000;
 
 // Initialiseer SQLite tabellen
@@ -266,10 +267,10 @@ async function handleApiRequest(req, res, pathname, urlObj) {
 }
 
 function handleStaticRequest(req, res, pathname) {
-  let filePath = path.join(__dirname, pathname === '/' ? 'index.html' : pathname);
+  let filePath = path.join(ROOT_DIR, pathname === '/' ? 'index.html' : pathname);
 
   // Veiligheid: voorkom directory traversal
-  if (!filePath.startsWith(__dirname)) {
+  if (!filePath.startsWith(ROOT_DIR)) {
     res.writeHead(403);
     res.end('Verboden');
     return;
