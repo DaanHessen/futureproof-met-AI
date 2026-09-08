@@ -1,8 +1,6 @@
 {
   "name": "futureproof-dagboek",
   "version": "1.0.0",
-  "description": "Digitaal Dagboek voor de minor Futureproof met AI! met lokale SQLite database",
-  "main": "server.js",
   "type": "module",
   "scripts": {
     "start": "node server.js",

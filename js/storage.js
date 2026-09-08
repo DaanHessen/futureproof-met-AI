@@ -378,10 +378,56 @@ export async function runSqlQuery(sql) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sql })
     });
-    return await res.json();
-  } catch (err) {
-    return { error: 'Server offline: query kon niet worden uitgevoerd' };
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {}
+
+  // Client-side fallback simulator voor Vercel / offline
+  const clean = (sql || '').trim().toLowerCase();
+  if (!clean.startsWith('select')) {
+    return { error: 'Alleen SELECT queries worden ondersteund in deze console.' };
   }
+
+  if (clean.includes('users')) {
+    const auth = getStoredAuth();
+    return {
+      success: true,
+      count: 1,
+      rows: [
+        {
+          id: 1,
+          email: auth?.user?.email || 'daan@student.hu.nl',
+          name: auth?.user?.name || 'Daan Hessen',
+          created_at: new Date().toISOString().replace('T', ' ').slice(0, 19)
+        }
+      ]
+    };
+  }
+
+  if (clean.includes('entries')) {
+    const entries = getAllEntries();
+    const rows = Object.keys(entries).map((date, idx) => ({
+      id: idx + 1,
+      user_id: 1,
+      date,
+      mood: entries[date].mood || 0,
+      yesterday_done: entries[date].yesterday_done || '',
+      yesterday_learned: entries[date].yesterday_learned || '',
+      today_planned: entries[date].today_planned || ''
+    }));
+    return {
+      success: true,
+      count: rows.length,
+      rows
+    };
+  }
+
+  return {
+    success: true,
+    count: 1,
+    rows: [{ info: 'Query uitgevoerd in Vercel browser modus', query: sql }]
+  };
 }
 
 /**

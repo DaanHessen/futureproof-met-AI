@@ -1,0 +1,9 @@
+server.js
+db.js
+*.sqlite
+*.sqlite*
+dagboek.sqlite
+dagboek.sqlite-journal
+dagboek_test.sqlite
+.git
+.github
