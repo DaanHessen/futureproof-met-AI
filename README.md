@@ -75,7 +75,7 @@ Dankzij Node.js 22 zijn er **geen externe dependencies** nodig (`node:sqlite` zi
 ### Start de lokale server met SQLite:
 ```bash
 npm start
-# of: node server.js
+# of: node server/server.js
 ```
 
 Open vervolgens je browser op:
@@ -162,11 +162,13 @@ export const journalQuestions = [
 
 ```
 dagboek/
-├── server.js           # Lokale Node.js 22 HTTP server & REST API
-├── db.js               # SQLite DatabaseSync manager & schema migraties
-├── dagboek.sqlite      # SQLite database bestand (automatisch aangemaakt)
 ├── index.html          # Semantische HTML5 layout met Database Inspector & Modals
 ├── package.json        # Start scripts (zero npm dependencies)
+├── vercel.json         # Vercel static deployment configuratie
+├── dagboek.sqlite      # SQLite database bestand (automatisch aangemaakt)
+├── server/
+│   ├── server.js       # Lokale Node.js 22 HTTP server & REST API
+│   └── db.js           # SQLite DatabaseSync manager & schema migraties
 ├── css/
 │   └── style.css       # Design tokens, responsieve layout & database tabellen
 ├── js/

@@ -45,18 +45,18 @@ In plaats van een externe clouddienst (zoals Supabase in Lovable) is voor dit pr
 > *"Waarom werkt de spreuk niet meer in productie zonder API key en hoe lossen we dit op?"*
 
 Een API key in frontend code is zichtbaar voor iedereen in de netwerkinspecteur van de browser. In dit project draait de aanroep via de backend:
-- Lokaal: via de endpoint `/api/spreuk` in `server.js`.
-- Vercel: via de serverless function `api/spreuk.js`.
-Beide omgevingen lezen veilig de `GEMINI_API_KEY` omgevingsvariabele uit zonder deze bloot te stellen aan de client. Tevens is er een graceful fallback naar 15+ gecureerde Nederlandse wijsheden over technologie en groei.
+- Lokaal: via de endpoint `/api/spreuk` in `server/server.js`.
+- Vercel: statische client-side fallback naar gecureerde Nederlandse wijsheden over technologie en groei.
+Beide omgevingen werken direct zonder configuratie.
 
 ---
 
 ## 2. Frontend Design Principes
 
 Conform de **frontend-design** richtlijnen:
-- **Rustgevend & Focusgericht**: Geen overdadige animaties of sjabloonachtige AI-gradiënten. Een ingetogen leisteen/mist achtergrond (`#f8fafc`) met diepe marineblauwe tekst (`#0f172a`).
-- **Typografie**: *Plus Jakarta Sans* voor optimale UI-leesbaarheid, *JetBrains Mono* voor tabellen en metadata, en een verfijnde cursieve zetwijze voor het dagelijkse citaat.
-- **10-Dagen Mood Horizon**: Een responsieve SVG-vectorcurve met gradientvlak, interactieve knooppunten en automatische detectie van gemoedstoestand-schommelingen.
+- **Rustgevend & Focusgericht**: Een harmonieus porselein- en zacht mistpalet met leisteenblauwe accenten en diep houtskool voor ultiem contrast.
+- **Niet-AI Typografie**: *Satoshi* (Fontshare) voor de interface & koppen, *Schibsted Grotesk* (Google Fonts) voor redactionele bodytekst, en *Instrument Serif* voor het dagelijkse citaat.
+- **10-Dagen Mood Horizon**: Een minimalistische sparkline vectorcurve met automatische detectie van gemoedstoestand-schommelingen.
 
 ---
 
@@ -64,8 +64,8 @@ Conform de **frontend-design** richtlijnen:
 
 | Bestand | Rol & Verantwoordelijkheid |
 | :--- | :--- |
-| `server.js` | Lokale Node.js 22 HTTP server met REST API endpoints voor auth, entries en database inspectie. |
-| `db.js` | SQLite DatabaseSync manager, tabellen initialisatie, password hashing en queries. |
+| `server/server.js` | Lokale Node.js 22 HTTP server met REST API endpoints voor auth, entries en database inspectie. |
+| `server/db.js` | SQLite DatabaseSync manager, tabellen initialisatie, password hashing en queries. |
 | `dagboek.sqlite` | Het daadwerkelijke SQLite databasebestand. |
 | `index.html` | Semantische HTML5 hoofdstructuur met Database Inspector & Modals. |
 | `css/style.css` | Design tokens, responsieve layout, dark/light mode en databasetabellen. |
