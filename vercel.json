@@ -1,3 +1,8 @@
 {
-  "cleanUrls": true
+  "cleanUrls": true,
+  "functions": {
+    "index.js": {
+      "includeFiles": "css/**,js/**,public/**,index.html"
+    }
+  }
 }
