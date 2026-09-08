@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="nl" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Digitaal Dagboek | Minor Futureproof met AI!</title>
+  <meta name="description" content="Persoonlijk minimalistisch reflectie- en leerdagboek voor de minor Futureproof met AI aan de Hogeschool Utrecht.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✨</text></svg>">
+
+  <!-- Typografie: Plus Jakarta Sans & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap" rel="stylesheet">
+
+  <!-- Externe SheetJS library voor native .xlsx Excel export -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
+
+  <!-- Stijlen -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Bovenbalk / Header -->
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="brand-group">
+        <span class="brand-logo-icon">AI</span>
+        <h1 class="brand-title">Dagboekje</h1>
+        <span class="brand-tag">Futureproof met AI!</span>
+      </div>
+
+      <div class="header-stats">
+        <div class="header-stat-chip" title="Aantal aaneengesloten ingevulde dagen">
+          <span>🔥</span>
+          <span><strong id="header-streak-count">0</strong> streak</span>
+        </div>
+        <div class="header-stat-chip" title="Totaal aantal geregistreerde dagboekdagen">
+          <span>📝</span>
+          <span><strong id="header-total-days">0</strong> dagen</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button type="button" class="btn-primary-sm" id="export-excel-btn" title="Exporteer dagboek entries naar Excel">
+          <span>📊</span>
+          <span>Excel Export</span>
+        </button>
+        <button type="button" class="btn-icon" id="settings-btn" title="Instellingen & API Key" aria-label="Instellingen">
+          ⚙️
+        </button>
+        <button type="button" class="btn-icon" id="theme-toggle-btn" title="Wissel lichte / donkere modus" aria-label="Thema wisselen">
+          <span id="theme-toggle-icon">🌙</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hoofdinhoud -->
+  <main class="main-container">
+
+    <!-- 1. AI Spreuk van de Dag (Hero) -->
+    <article class="quote-hero-card" id="quote-hero-card" aria-label="Spreuk van de dag">
+      <div class="quote-card-header">
+        <div class="quote-badge-group">
+          <span class="quote-pill">✨ Spreuk van de Dag</span>
+          <span class="quote-theme-tag" id="daily-quote-theme">Futureproof</span>
+        </div>
+        <button type="button" class="btn-refresh-quote" id="refresh-quote-btn" title="Vraag een nieuwe inspirerende spreuk op">
+          <span class="refresh-icon">↻</span>
+          <span>Nieuwe spreuk</span>
+        </button>
+      </div>
+      <blockquote class="quote-body" id="daily-quote-text">
+        “AI neemt jouw werk niet over, maar degene die AI goed weet te gebruiken wel.”
+      </blockquote>
+      <div class="quote-footer">
+        <span class="quote-author-dash">—</span>
+        <cite id="daily-quote-author">Gert van Hardeveld</cite>
+      </div>
+    </article>
+
+    <!-- 2. Datumselectie & Navigatiestrip -->
+    <section class="date-nav-section" aria-label="Datumselectie">
+      <div class="date-bar-top">
+        <div class="date-heading-group">
+          <h2 class="active-date-heading" id="active-date-heading">Vandaag</h2>
+          <span class="date-badge is-today" id="active-date-badge">Vandaag</span>
+        </div>
+        <div class="date-controls">
+          <button type="button" class="btn-icon" id="prev-day-btn" title="Vorige dag (Alt + Links)" aria-label="Vorige dag">←</button>
+          <label class="date-picker-label" title="Kies een specifieke datum">
+            <input type="date" id="journal-date-picker" class="journal-date-picker-input">
+          </label>
+          <button type="button" class="btn-icon" id="next-day-btn" title="Volgende dag (Alt + Rechts)" aria-label="Volgende dag">→</button>
+          <button type="button" class="btn-today" id="today-btn" style="display: none;">Vandaag</button>
+        </div>
+      </div>
+
+      <!-- Snelle datumstrip van de afgelopen 7 dagen -->
+      <div class="date-strip-scroll" id="date-strip-container" role="tablist" aria-label="Kies een dag uit de afgelopen week">
+        <!-- Dynamisch gevuld door app.js -->
+      </div>
+    </section>
+
+    <!-- 3. Gemoedstoestand / Mood Check-in (1-5 sterren) -->
+    <section class="mood-card" aria-label="Gemoedstoestand van vandaag">
+      <div class="mood-card-header">
+        <h3 class="mood-title">
+          <span>🎯</span>
+          <span>Hoe gaat het vandaag?</span>
+        </h3>
+        <span class="save-status-pill" id="save-status-pill">Opgeslagen ✓</span>
+      </div>
+
+      <div class="mood-stars-group" id="mood-stars-group" role="radiogroup" aria-label="Score van 1 tot 5 sterren">
+        <!-- Dynamisch gegenereerd door app.js -->
+      </div>
+
+      <div class="mood-status-label" id="mood-status-label">
+        Klik op een ster om je gemoedstoestand aan te geven (1-5)
+      </div>
+    </section>
+
+    <!-- 4. Modulaire Vragen (Gisteren gedaan, Gisteren geleerd, Vandaag doen) -->
+    <div class="questions-container" id="questions-container">
+      <!-- Dynamisch gegenereerd vanuit js/questions.js -->
+    </div>
+
+    <!-- 5. 10-Dagen Gemoedstoestand Horizon (Trend & Moodswings) -->
+    <section class="chart-section" id="mood-chart-container" aria-label="Gemoedstoestand grafiek afgelopen 10 dagen">
+      <!-- Dynamisch gerenderd door js/mood-chart.js -->
+    </section>
+
+  </main>
+
+  <!-- Voettekst -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <strong>Minor Futureproof met AI!</strong> • Hogeschool Utrecht
+        <div class="footer-sub">Persoonlijk digitaal leerdagboek &amp; reflectieportaal</div>
+      </div>
+      <div class="footer-links">
+        <span class="footer-sub">💾 Lokale opslag (privacyvriendelijk)</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Modal: Excel Export -->
+  <div class="modal-backdrop" id="export-modal" role="dialog" aria-modal="true" aria-labelledby="export-modal-title">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h4 class="modal-title" id="export-modal-title">Dagboek Exporteren</h4>
+        <button type="button" class="btn-close-modal" id="close-export-modal" aria-label="Sluiten">✕</button>
+      </div>
+      <div class="modal-body">
+        <p>Download een compleet overzicht van al je opgeslagen dagboeknotities, inclusief data, gemoedstoestand en reflecties.</p>
+        
+        <div class="export-option-card">
+          <div class="export-option-info">
+            <h5>Microsoft Excel (.xlsx)</h5>
+            <p>Direct gereed voor Excel met automatische kolombreedtes en opmaak.</p>
+          </div>
+          <button type="button" class="btn-primary" id="confirm-export-xlsx">Download .xlsx</button>
+        </div>
+
+        <div class="export-option-card">
+          <div class="export-option-info">
+            <h5>Nederlands CSV-bestand (.csv)</h5>
+            <p>Geformatteerd met puntkomma's (;) en UTF-8 BOM voor probleemloze import.</p>
+          </div>
+          <button type="button" class="btn-secondary" id="confirm-export-csv">Download .csv</button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="document.getElementById('export-modal').classList.remove('is-open')">Annuleren</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Instellingen & API Key -->
+  <div class="modal-backdrop" id="settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h4 class="modal-title" id="settings-modal-title">Instellingen &amp; AI-koppeling</h4>
+        <button type="button" class="btn-close-modal" id="close-settings-modal" aria-label="Sluiten">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="settings-gemini-key" class="form-label">Google Gemini API Key (optioneel):</label>
+          <input type="password" id="settings-gemini-key" class="form-input" placeholder="AIzaSy...">
+          <p class="form-hint">
+            Bij deploy op <strong>Vercel</strong> stel je deze veilig in via de Vercel Environment Variables als <code>GEMINI_API_KEY</code>. 
+            Gebruik je de app lokaal zonder Vercel? Dan kun je hier optioneel je eigen sleutel opslaan in je browser.
+          </p>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Dataopslag:</label>
+          <p class="form-hint">
+            Al je dagboekgegevens worden veilig in de <strong>LocalStorage</strong> van je eigen browser opgeslagen. Er worden geen privégegevens naar externe servers verstuurd.
+          </p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" id="close-settings-modal-btn" onclick="document.getElementById('settings-modal').classList.remove('is-open')">Sluiten</button>
+        <button type="button" class="btn-primary" id="save-settings-btn">Opslaan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Applicatie Module -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
