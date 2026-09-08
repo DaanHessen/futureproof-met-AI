@@ -1,7 +1,7 @@
 /**
  * js/app.js
  * Hoofdscript voor het digitaal dagboek.
- * Snelle, rustige interactie, direct schakelende spreuken en volledige viewport layout.
+ * Strakke typografie, hoogwaardige SVG-iconen en snelle interactie.
  */
 
 import { journalQuestions, moodOptions } from './questions.js';
@@ -28,6 +28,10 @@ import { getDailyQuote } from './quotes.js';
 let activeDateStr = getTodayDateString();
 let autoSaveTimeout = null;
 let currentAuthMode = 'login';
+
+const SUN_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
+const MOON_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
+const STAR_SVG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
 
 document.addEventListener('DOMContentLoaded', async () => {
   initTheme();
@@ -80,9 +84,9 @@ function initTheme() {
 
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
-  const icon = document.getElementById('theme-toggle-icon');
-  if (icon) {
-    icon.textContent = theme === 'dark' ? '☀️' : '🌙';
+  const iconWrap = document.getElementById('theme-toggle-icon');
+  if (iconWrap) {
+    iconWrap.innerHTML = theme === 'dark' ? SUN_SVG : MOON_SVG;
   }
 }
 
@@ -98,7 +102,7 @@ async function checkUserSession() {
 function updateAuthUI(user) {
   const label = document.getElementById('auth-btn-label');
   if (!label) return;
-  label.textContent = user ? (user.name || user.email.split('@')[0]) : 'Inloggen / Registreren';
+  label.textContent = user ? (user.name || user.email.split('@')[0]) : 'Inloggen';
 }
 
 function initDateNavigation() {
@@ -139,11 +143,10 @@ function selectDate(dateStr) {
   renderSidebarDaysList();
   updateDateHeading();
 
-  // Update ook de quote voor die dag
   const quote = getDailyQuote(activeDateStr, false);
   const quoteText = document.getElementById('daily-quote-text');
   const quoteAuthor = document.getElementById('daily-quote-author');
-  if (quoteText && quote) quoteText.textContent = `“${quote.spreuk}”`;
+  if (quoteText && quote) quoteText.textContent = quote.spreuk;
   if (quoteAuthor && quote) quoteAuthor.textContent = `— ${quote.auteur}`;
 }
 
@@ -185,7 +188,7 @@ function renderSidebarDaysList() {
     const isToday = day.date === todayStr;
     const isFilled = hasEntry(day.date);
     const entry = day.entry;
-    const moodEmoji = entry && entry.mood > 0 ? moodOptions.find(m => m.value === entry.mood)?.emoji : '';
+    const moodScore = entry && entry.mood > 0 ? entry.mood : null;
 
     html += `
       <button type="button" class="sidebar-day-item ${isSelected ? 'is-active' : ''}" data-date="${day.date}">
@@ -193,8 +196,8 @@ function renderSidebarDaysList() {
           <span class="day-item-name">${isToday ? 'Vandaag' : day.dayName}</span>
           <span class="day-item-date">${day.formattedDate}</span>
         </div>
-        <div class="day-item-mood">
-          ${moodEmoji ? `<span>${moodEmoji}</span>` : (isFilled ? '<span class="day-item-empty-dot" style="background:var(--accent-blue);"></span>' : '<span class="day-item-empty-dot"></span>')}
+        <div class="day-item-meta">
+          ${moodScore ? `<span class="day-score-pill">${moodScore}★</span>` : (isFilled ? '<span class="day-dot-filled"></span>' : '<span class="day-dot-empty"></span>')}
         </div>
       </button>
     `;
@@ -253,8 +256,8 @@ function initMoodSelector() {
   let html = '';
   moodOptions.forEach(opt => {
     html += `
-      <button type="button" class="star-btn" data-value="${opt.value}" title="${opt.stars} sterren: ${opt.label}">
-        ★
+      <button type="button" class="star-btn" data-value="${opt.value}" title="${opt.stars} sterren: ${opt.label}" aria-label="${opt.stars} sterren: ${opt.label}">
+        ${STAR_SVG}
       </button>
     `;
   });
@@ -307,7 +310,7 @@ function setMood(val, triggerSave = true) {
 
   const opt = moodOptions.find(o => o.value === val);
   if (label) {
-    label.textContent = opt ? `${opt.emoji} ${opt.stars} sterren — ${opt.label}` : 'Kies een score (1 tot 5)';
+    label.textContent = opt ? `${opt.stars} van 5 sterren — ${opt.label}` : 'Kies een score (1 tot 5)';
   }
 
   if (triggerSave) {
@@ -344,7 +347,7 @@ function flushCurrentEntrySave() {
 
   const success = saveEntry(activeDateStr, data);
   if (success) {
-    updateSaveStatus('Opgeslagen ✓', 'saved');
+    updateSaveStatus('Opgeslagen');
   }
 }
 
@@ -356,17 +359,15 @@ function triggerAutoSave() {
   }, 400);
 }
 
-function updateSaveStatus(text, cls = '') {
+function updateSaveStatus(text) {
   const el = document.getElementById('save-status-pill');
   if (el) {
-    el.textContent = text;
-    el.className = `save-pill ${cls}`;
+    const textSpan = el.querySelector('span');
+    if (textSpan) textSpan.textContent = text;
+    else el.textContent = text;
   }
 }
 
-/**
- * AI Spreuk integratie: DIRECTE verversing op klik (geen timeout of vertraging!)
- */
 function initQuote() {
   const quoteText = document.getElementById('daily-quote-text');
   const quoteAuthor = document.getElementById('daily-quote-author');
@@ -374,14 +375,12 @@ function initQuote() {
 
   function render(q) {
     if (!q) return;
-    if (quoteText) quoteText.textContent = `“${q.spreuk}”`;
+    if (quoteText) quoteText.textContent = q.spreuk;
     if (quoteAuthor) quoteAuthor.textContent = `— ${q.auteur}`;
   }
 
-  // Toon initiële quote
   render(getDailyQuote(activeDateStr, false));
 
-  // Directe switch naar volgende spreuk bij klik
   if (refreshBtn) {
     refreshBtn.addEventListener('click', () => {
       const next = getDailyQuote(activeDateStr, true);
@@ -528,7 +527,6 @@ function initDatabaseModal() {
       await seed5Entries();
       await loadDbInspection();
       loadEntryForDate(activeDateStr);
-      alert('5 entries toegevoegd aan SQLite!');
     });
   }
 
@@ -541,7 +539,7 @@ function initDatabaseModal() {
 
       const res = await runSqlQuery(sql);
       if (res.error) {
-        area.innerHTML = `<div style="padding:0.75rem; color: #e11d48;">Fout: ${escapeHtml(res.error)}</div>`;
+        area.innerHTML = `<div style="padding:0.75rem; color: #b91c1c;">Fout: ${escapeHtml(res.error)}</div>`;
         return;
       }
       if (!res.rows || res.rows.length === 0) {
@@ -583,11 +581,11 @@ async function loadDbInspection() {
         <tr>
           <td>#${e.id || '-'}</td>
           <td><strong>${e.date}</strong></td>
-          <td>${e.mood > 0 ? e.mood + ' ★' : '—'}</td>
+          <td>${e.mood > 0 ? e.mood + '★' : '—'}</td>
           <td>${escapeHtml(e.yesterday_done || '—')}</td>
           <td>${escapeHtml(e.yesterday_learned || '—')}</td>
           <td>${escapeHtml(e.today_planned || '—')}</td>
-          <td style="font-size: 0.7rem; color: var(--text-muted);">${e.updated_at ? e.updated_at.slice(0, 16) : '—'}</td>
+          <td style="font-size: 0.72rem; color: var(--text-muted);">${e.updated_at ? e.updated_at.slice(0, 16) : '—'}</td>
         </tr>
       `;
     });

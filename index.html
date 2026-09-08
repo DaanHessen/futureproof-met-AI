@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dagboekje — Futureproof met AI</title>
-  <meta name="description" content="Minimalistisch digitaal dagboek voor de minor Futureproof met AI aan de Hogeschool Utrecht.">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✨</text></svg>">
+  <meta name="description" content="Minimalistisch digitaal reflectiedagboek voor de minor Futureproof met AI aan de Hogeschool Utrecht.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%234a78a6%22 stroke-width=%222%22><path d=%22M4 19.5A2.5 2.5 0 0 1 6.5 17H20%22/><path d=%22M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z%22/></svg>">
 
   <!-- Typografie: Plus Jakarta Sans & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -22,7 +22,7 @@
 
   <div class="app-shell">
     
-    <!-- Linkerpaneel: Dagenoverzicht, Navigatie & Database -->
+    <!-- Linkerpaneel: Dagenoverzicht & Navigatie -->
     <aside class="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-brand">
@@ -30,18 +30,28 @@
           <span class="brand-subtitle">Futureproof met AI • HU</span>
         </div>
         <div class="sidebar-actions">
-          <button type="button" class="btn-sidebar-icon" id="today-btn" title="Vandaag">📅</button>
-          <button type="button" class="btn-sidebar-icon" id="db-inspect-btn" title="SQLite Database inspecteren">🗄️</button>
-          <button type="button" class="btn-sidebar-icon" id="export-excel-btn" title="Exporteer naar Excel">📊</button>
-          <button type="button" class="btn-sidebar-icon" id="theme-toggle-btn" title="Thema wisselen">
-            <span id="theme-toggle-icon">🌙</span>
+          <button type="button" class="btn-sidebar-icon" id="today-btn" title="Ga naar vandaag" aria-label="Vandaag">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </button>
+          <button type="button" class="btn-sidebar-icon" id="db-inspect-btn" title="SQLite Database inspecteren" aria-label="Database">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+          </button>
+          <button type="button" class="btn-sidebar-icon" id="export-excel-btn" title="Exporteer naar Excel" aria-label="Exporteer">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </button>
+          <button type="button" class="btn-sidebar-icon" id="theme-toggle-btn" title="Thema wisselen" aria-label="Thema wisselen">
+            <span id="theme-toggle-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            </span>
           </button>
         </div>
       </div>
 
       <div class="sidebar-section-title">
         <span>Recente dagen</span>
-        <span class="streak-pill" title="Aaneengesloten dagen ingevuld">🔥 <strong id="header-streak-count">0</strong> streak</span>
+        <span class="streak-pill" id="sidebar-streak-badge" title="Aaneengesloten dagen gereflecteerd">
+          <span id="header-streak-count">0</span>d streak
+        </span>
       </div>
 
       <!-- Scrolbare lijst met recente dagen -->
@@ -54,57 +64,65 @@
         <div id="sidebar-mood-chart">
           <!-- Dynamisch gevuld door mood-chart.js -->
         </div>
-        <button type="button" class="sidebar-user-btn" id="auth-btn">
-          <span>👤</span>
+        <button type="button" class="sidebar-user-btn" id="auth-btn" title="Account beheren">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
           <strong id="auth-btn-label">Inloggen / Registreren</strong>
         </button>
       </div>
     </aside>
 
-    <!-- Rechterpaneel: Schrijfruimte (volledige viewport) -->
+    <!-- Rechterpaneel: Schrijfruimte -->
     <main class="main-content">
       
       <!-- Content Header -->
       <header class="content-header">
         <div class="date-nav-cluster">
-          <button type="button" class="btn-arrow" id="prev-day-btn" title="Vorige dag">←</button>
+          <button type="button" class="btn-arrow" id="prev-day-btn" title="Vorige dag" aria-label="Vorige dag">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
           <h2 class="header-date-text" id="active-date-heading">Vandaag</h2>
           <span class="date-badge is-today" id="active-date-badge">Vandaag</span>
-          <button type="button" class="btn-arrow" id="next-day-btn" title="Volgende dag">→</button>
+          <button type="button" class="btn-arrow" id="next-day-btn" title="Volgende dag" aria-label="Volgende dag">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
         </div>
 
         <div class="header-meta-right">
-          <span class="save-pill" id="save-status-pill">Opgeslagen ✓</span>
-          <input type="date" id="journal-date-picker" class="date-input-flat">
+          <span class="save-pill" id="save-status-pill">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Opgeslagen</span>
+          </span>
+          <input type="date" id="journal-date-picker" class="date-input-flat" title="Kies datum">
         </div>
       </header>
 
-      <!-- Spreuk van de Dag (Discreet, verfijnd & instant verversing) -->
+      <!-- Spreuk van de Dag -->
       <section class="quote-banner">
         <div class="quote-left">
-          <span class="quote-text" id="daily-quote-text">“AI neemt jouw werk niet over, maar degene die AI goed weet te gebruiken wel.”</span>
+          <span class="quote-mark">“</span>
+          <span class="quote-text" id="daily-quote-text">AI neemt jouw werk niet over, maar degene die AI goed weet te gebruiken wel.</span>
           <span class="quote-author" id="daily-quote-author">— Gert van Hardeveld</span>
         </div>
-        <button type="button" class="btn-refresh-quote" id="refresh-quote-btn" title="Volgende inspirerende spreuk">
-          <span>↻</span>
+        <button type="button" class="btn-refresh-quote" id="refresh-quote-btn" title="Volgende spreuk">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
           <span>Nieuwe spreuk</span>
         </button>
       </section>
 
-      <!-- Schrijfruimte met de 3 vragen en mood selector -->
+      <!-- Schrijfruimte met mood selector en de 3 vragen -->
       <div class="editor-scroll-pane">
         
         <!-- Mood Check-in -->
         <section class="mood-checkin-row">
-          <span class="mood-prompt-label">Hoe gaat het vandaag?</span>
+          <span class="mood-prompt-label">Gemoedstoestand</span>
           <div class="mood-stars-wrapper" id="mood-stars-group">
-            <!-- 5 sterren buttons -->
+            <!-- 5 SVG sterren gegenereerd door app.js -->
           </div>
           <span class="mood-status-label" id="mood-status-label">Kies een score (1 tot 5)</span>
         </section>
 
         <!-- 3 Modulaire Reflectievragen -->
-        <div id="questions-container" style="display: flex; flex-direction: column; gap: 1.5rem;">
+        <div id="questions-container" class="questions-stack">
           <!-- Dynamisch gerenderd vanuit js/questions.js -->
         </div>
 
@@ -117,8 +135,10 @@
   <div class="modal-backdrop" id="db-modal" role="dialog" aria-modal="true" aria-labelledby="db-modal-title">
     <div class="modal-card modal-card-wide">
       <div class="modal-header">
-        <h4 class="modal-title" id="db-modal-title">🗄️ SQLite Database (<span id="db-path-label">dagboek.sqlite</span>)</h4>
-        <button type="button" class="btn-close" id="close-db-modal">✕</button>
+        <h4 class="modal-title" id="db-modal-title">SQLite Database (<span id="db-path-label">dagboek.sqlite</span>)</h4>
+        <button type="button" class="btn-close" id="close-db-modal" aria-label="Sluiten">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>
 
       <div class="db-tabs-bar">
@@ -135,11 +155,11 @@
         </div>
 
         <div style="display: flex; gap: 0.35rem;">
-          <button type="button" class="btn-secondary" id="btn-seed-5-entries" style="font-size: 0.75rem;">
-            + 5 Entries toevoegen
+          <button type="button" class="btn-secondary" id="btn-seed-5-entries">
+            + 5 Voorbeeld-entries
           </button>
-          <a href="/api/db/download" download="dagboek.sqlite" class="btn-secondary" style="font-size: 0.75rem; text-decoration: none;">
-            💾 Download .sqlite
+          <a href="/api/db/download" download="dagboek.sqlite" class="btn-secondary" style="text-decoration: none;">
+            Download .sqlite
           </a>
         </div>
       </div>
@@ -149,13 +169,13 @@
         <table class="db-table">
           <thead>
             <tr>
-              <th>id</th>
-              <th>datum</th>
-              <th>mood</th>
-              <th>gisteren gedaan</th>
-              <th>gisteren geleerd</th>
-              <th>vandaag doen</th>
-              <th>bijgewerkt</th>
+              <th>ID</th>
+              <th>Datum</th>
+              <th>Score</th>
+              <th>Gisteren gedaan</th>
+              <th>Gisteren geleerd</th>
+              <th>Vandaag doen</th>
+              <th>Bijgewerkt</th>
             </tr>
           </thead>
           <tbody id="db-entries-tbody">
@@ -168,10 +188,10 @@
         <table class="db-table">
           <thead>
             <tr>
-              <th>id</th>
-              <th>email</th>
-              <th>naam</th>
-              <th>geregistreerd</th>
+              <th>ID</th>
+              <th>E-mail</th>
+              <th>Naam</th>
+              <th>Geregistreerd op</th>
             </tr>
           </thead>
           <tbody id="db-users-tbody">
@@ -201,12 +221,14 @@
     <div class="modal-card">
       <div class="modal-header">
         <h4 class="modal-title" id="auth-modal-title">Account (SQLite)</h4>
-        <button type="button" class="btn-close" id="close-auth-modal">✕</button>
+        <button type="button" class="btn-close" id="close-auth-modal" aria-label="Sluiten">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>
 
       <div style="display: flex; border-bottom: 1px solid var(--border); margin-bottom: 1rem;">
         <button type="button" class="db-tab is-active" id="auth-tab-login" style="flex: 1; text-align: center;">Inloggen</button>
-        <button type="button" class="db-tab" id="auth-tab-register" style="flex: 1; text-align: center;">Registreren (zonder email)</button>
+        <button type="button" class="db-tab" id="auth-tab-register" style="flex: 1; text-align: center;">Registreren</button>
       </div>
 
       <form id="auth-form">
@@ -229,7 +251,7 @@
 
         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem;">
           <button type="button" class="btn-secondary" id="quick-demo-auth-btn" style="font-size: 0.75rem;">
-            ⚡ Demo account
+            Demo account
           </button>
           <button type="submit" class="btn-primary" id="auth-submit-btn">Inloggen</button>
         </div>
