@@ -7,12 +7,13 @@
   <meta name="description" content="Minimalistisch digitaal reflectiedagboek voor de minor Futureproof met AI aan de Hogeschool Utrecht.">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%234a78a6%22 stroke-width=%222%22><path d=%22M4 19.5A2.5 2.5 0 0 1 6.5 17H20%22/><path d=%22M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z%22/></svg>">
 
-  <!-- Typografie: Plus Jakarta Sans & JetBrains Mono -->
+  <!-- Niet-standaard typografie: Satoshi (Fontshare) & Schibsted Grotesk + Instrument Serif (Google Fonts) -->
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600,700&display=swap" rel="stylesheet">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&family=Schibsted+Grotesk:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap" rel="stylesheet">
 
-  <!-- SheetJS voor Excel export -->
+  <!-- SheetJS voor native Excel export -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
 
   <!-- Stijlen -->
@@ -22,7 +23,7 @@
 
   <div class="app-shell">
     
-    <!-- Linkerpaneel: Dagenoverzicht & Navigatie -->
+    <!-- Linkerpaneel: Dagenoverzicht & Navigatie (310px) -->
     <aside class="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-brand">
@@ -71,10 +72,10 @@
       </div>
     </aside>
 
-    <!-- Rechterpaneel: Schrijfruimte -->
+    <!-- Rechterpaneel: Volledig benutte werkruimte (100% breedte & hoogte) -->
     <main class="main-content">
       
-      <!-- Content Header -->
+      <!-- Bovenbalk: Datum & opslagstatus -->
       <header class="content-header">
         <div class="date-nav-cluster">
           <button type="button" class="btn-arrow" id="prev-day-btn" title="Vorige dag" aria-label="Vorige dag">
@@ -96,7 +97,7 @@
         </div>
       </header>
 
-      <!-- Spreuk van de Dag -->
+      <!-- Spreuk van de Dag (Verfijnd & instant wisselend) -->
       <section class="quote-banner">
         <div class="quote-left">
           <span class="quote-mark">“</span>
@@ -109,21 +110,23 @@
         </button>
       </section>
 
-      <!-- Schrijfruimte met mood selector en de 3 vragen -->
-      <div class="editor-scroll-pane">
+      <!-- Volledig benutte schrijfruimte (geen loze ruimte) -->
+      <div class="editor-workspace">
         
-        <!-- Mood Check-in -->
-        <section class="mood-checkin-row">
-          <span class="mood-prompt-label">Gemoedstoestand</span>
-          <div class="mood-stars-wrapper" id="mood-stars-group">
-            <!-- 5 SVG sterren gegenereerd door app.js -->
+        <!-- Mood Check-in Balk -->
+        <section class="mood-bar">
+          <div class="mood-bar-left">
+            <span class="mood-prompt-label">Gemoedstoestand:</span>
+            <div class="mood-stars-wrapper" id="mood-stars-group">
+              <!-- 5 SVG sterren gegenereerd door app.js -->
+            </div>
           </div>
           <span class="mood-status-label" id="mood-status-label">Kies een score (1 tot 5)</span>
         </section>
 
-        <!-- 3 Modulaire Reflectievragen -->
-        <div id="questions-container" class="questions-stack">
-          <!-- Dynamisch gerenderd vanuit js/questions.js -->
+        <!-- 3-Koloms Schrijfgrid: vult alle resterende breedte en hoogte -->
+        <div class="questions-grid" id="questions-container">
+          <!-- Dynamisch gerenderd vanuit js/questions.js: 3 side-by-side kolommen -->
         </div>
 
       </div>
@@ -164,7 +167,6 @@
         </div>
       </div>
 
-      <!-- Tab Inhoud -->
       <div id="tab-content-entries" class="db-table-scroll">
         <table class="db-table">
           <thead>

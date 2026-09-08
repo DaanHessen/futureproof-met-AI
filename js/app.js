@@ -219,13 +219,14 @@ function initQuestions() {
   let html = '';
   journalQuestions.forEach(q => {
     html += `
-      <div class="prompt-card">
-        <label for="input-${q.id}" class="prompt-title">${q.title}</label>
+      <div class="prompt-column" id="col-${q.id}">
+        <div class="prompt-column-header">
+          <label for="input-${q.id}" class="prompt-title">${q.title}</label>
+        </div>
         <textarea 
           id="input-${q.id}" 
           class="prompt-textarea" 
-          placeholder="${q.placeholder}" 
-          rows="${q.rows || 4}"
+          placeholder="${q.placeholder}"
         ></textarea>
       </div>
     `;
@@ -238,16 +239,11 @@ function initQuestions() {
     if (textarea) {
       textarea.addEventListener('input', () => {
         triggerAutoSave();
-        adjustHeight(textarea);
       });
     }
   });
 }
 
-function adjustHeight(el) {
-  el.style.height = 'auto';
-  el.style.height = Math.max(el.scrollHeight, 100) + 'px';
-}
 
 function initMoodSelector() {
   const group = document.getElementById('mood-stars-group');
@@ -326,7 +322,6 @@ function loadEntryForDate(dateStr) {
     const textarea = document.getElementById(`input-${q.id}`);
     if (textarea) {
       textarea.value = entry[q.id] || '';
-      adjustHeight(textarea);
     }
   });
 
