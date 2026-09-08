@@ -25,7 +25,6 @@ import {
   pushAllEntriesToSupabase,
   fetchEntriesFromSupabase 
 } from './storage.js';
-import { renderMoodChart } from './mood-chart.js';
 import { getDailyQuote } from './quotes.js';
 
 let activeDateStr = getTodayDateString();
@@ -42,7 +41,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   initQuote();
   initMoodSelector();
   initQuestions();
-  initChart();
   initExport();
   initAuthModal();
   initDatabaseModal();
@@ -56,7 +54,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 window.addEventListener('dagboek:saved', () => {
   renderSidebarDaysList();
   updateHeaderStats();
-  renderMoodChart('sidebar-mood-chart', (date) => selectDate(date));
 });
 
 function getTodayDateString() {
@@ -215,12 +212,6 @@ function renderSidebarDaysList() {
   });
 }
 
-function autoGrowTextarea(textarea) {
-  if (!textarea) return;
-  textarea.style.height = 'auto';
-  textarea.style.height = `${Math.max(120, textarea.scrollHeight)}px`;
-}
-
 function initQuestions() {
   const container = document.getElementById('questions-container');
   if (!container) return;
@@ -250,7 +241,6 @@ function initQuestions() {
     const textarea = document.getElementById(`input-${q.id}`);
     if (textarea) {
       textarea.addEventListener('input', () => {
-        autoGrowTextarea(textarea);
         triggerAutoSave();
       });
     }
@@ -335,7 +325,6 @@ function loadEntryForDate(dateStr) {
     const textarea = document.getElementById(`input-${q.id}`);
     if (textarea) {
       textarea.value = entry[q.id] || '';
-      autoGrowTextarea(textarea);
     }
   });
 
@@ -400,10 +389,6 @@ function initQuote() {
   window.addEventListener('dagboek:quote-updated', (e) => {
     render(e.detail);
   });
-}
-
-function initChart() {
-  renderMoodChart('sidebar-mood-chart', (date) => selectDate(date));
 }
 
 function updateHeaderStats() {
