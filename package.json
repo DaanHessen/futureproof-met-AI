@@ -2,6 +2,7 @@
   "name": "futureproof-dagboek",
   "version": "1.0.0",
   "type": "module",
+  "main": "index.js",
   "scripts": {
     "build": "echo 'Static build ready'",
     "start": "node server/server.js",
