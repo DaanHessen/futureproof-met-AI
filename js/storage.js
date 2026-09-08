@@ -7,9 +7,45 @@
 const STORAGE_KEY = 'fp_dagboek_entries_v1';
 const SETTINGS_KEY = 'fp_dagboek_settings_v1';
 const AUTH_KEY = 'fp_dagboek_auth_v1';
+export const SUPABASE_DEFAULT_KEY = 'sb_publishable_weJ_CCPc8r7-8Vu7IFP0nQ_JDBH-K7Q';
 
 let cachedUser = null;
 let isOnlineWithBackend = false;
+let supabaseInstance = null;
+
+export function getSupabaseClient() {
+  if (supabaseInstance) return supabaseInstance;
+  if (!window.supabase) return null;
+
+  let url = localStorage.getItem('fp_supabase_url') || '';
+  const key = localStorage.getItem('fp_supabase_key') || SUPABASE_DEFAULT_KEY;
+
+  if (!url) return null;
+  if (!url.startsWith('http')) {
+    url = `https://${url}.supabase.co`;
+  }
+
+  try {
+    supabaseInstance = window.supabase.createClient(url, key);
+    return supabaseInstance;
+  } catch (e) {
+    console.warn('Supabase client creatiefout:', e);
+    return null;
+  }
+}
+
+export function configureSupabase(url, key) {
+  if (url) {
+    let cleanUrl = url.trim();
+    if (!cleanUrl.startsWith('http')) cleanUrl = `https://${cleanUrl}.supabase.co`;
+    localStorage.setItem('fp_supabase_url', cleanUrl);
+  }
+  if (key) {
+    localStorage.setItem('fp_supabase_key', key.trim());
+  }
+  supabaseInstance = null;
+  return getSupabaseClient();
+}
 
 /**
  * Haal opgeslagen authenticatiegegevens op.
@@ -241,6 +277,9 @@ export function saveEntry(dateStr, data) {
         console.warn('SQLite opslag op de achtergrond mislukt:', err);
       });
     }
+
+    // Stuur asynchroon naar Supabase Cloud indien geconfigureerd
+    syncEntryToSupabase(entryObj).catch(() => {});
 
     // Trigger UI update
     window.dispatchEvent(new CustomEvent('dagboek:saved', {
@@ -603,4 +642,111 @@ function escapeCsvValue(val) {
   if (val === null || val === undefined) return '""';
   const str = String(val).replace(/"/g, '""');
   return `"${str}"`;
+}
+
+/**
+ * Synchroniseer een enkele entry naar Supabase Cloud
+ */
+export async function syncEntryToSupabase(entryObj) {
+  const client = getSupabaseClient();
+  if (!client) return false;
+
+  try {
+    const auth = getStoredAuth();
+    const user_email = auth?.user?.email || 'daan@student.hu.nl';
+
+    const { error } = await client
+      .from('entries')
+      .upsert({
+        user_email,
+        date: entryObj.date,
+        mood: Number(entryObj.mood) || 0,
+        yesterday_done: entryObj.yesterday_done || '',
+        yesterday_learned: entryObj.yesterday_learned || '',
+        today_planned: entryObj.today_planned || '',
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'user_email,date' });
+
+    if (error) {
+      console.warn('Supabase upsert fout:', error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.warn('Supabase netwerkfout:', err);
+    return false;
+  }
+}
+
+/**
+ * Haal alle entries op uit Supabase Cloud
+ */
+export async function fetchEntriesFromSupabase() {
+  const client = getSupabaseClient();
+  if (!client) return { error: 'Supabase client niet geconfigureerd' };
+
+  try {
+    const { data, error } = await client
+      .from('entries')
+      .select('*')
+      .order('date', { ascending: false });
+
+    if (error) throw error;
+
+    if (Array.isArray(data)) {
+      const local = getAllEntries();
+      data.forEach(row => {
+        local[row.date] = {
+          date: row.date,
+          mood: row.mood,
+          yesterday_done: row.yesterday_done || '',
+          yesterday_learned: row.yesterday_learned || '',
+          today_planned: row.today_planned || '',
+          updatedAt: row.updated_at
+        };
+      });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(local));
+      window.dispatchEvent(new CustomEvent('dagboek:saved', { detail: { fromSupabase: true } }));
+      return { success: true, count: data.length, rows: data };
+    }
+    return { success: true, count: 0, rows: [] };
+  } catch (err) {
+    return { error: err.message };
+  }
+}
+
+/**
+ * Push alle lokale entries in één keer naar Supabase Cloud
+ */
+export async function pushAllEntriesToSupabase() {
+  const client = getSupabaseClient();
+  if (!client) return { error: 'Vul eerst je Supabase Project URL in' };
+
+  try {
+    const local = getAllEntries();
+    const dates = Object.keys(local);
+    if (dates.length === 0) return { success: true, count: 0 };
+
+    const auth = getStoredAuth();
+    const user_email = auth?.user?.email || 'daan@student.hu.nl';
+
+    const payload = dates.map(date => ({
+      user_email,
+      date,
+      mood: Number(local[date].mood) || 0,
+      yesterday_done: local[date].yesterday_done || '',
+      yesterday_learned: local[date].yesterday_learned || '',
+      today_planned: local[date].today_planned || '',
+      updated_at: new Date().toISOString()
+    }));
+
+    const { data, error } = await client
+      .from('entries')
+      .upsert(payload, { onConflict: 'user_email,date' });
+
+    if (error) throw error;
+    return { success: true, count: payload.length };
+  } catch (err) {
+    return { error: err.message };
+  }
 }

@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "build": "echo 'Static build ready'",
     "start": "node server/server.js",
     "dev": "node --watch server/server.js"
   },

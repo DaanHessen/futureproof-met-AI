@@ -1,0 +1,8 @@
+project_id = "dagboek-future-met-ai"
+
+[api]
+port = 54321
+schemas = ["public"]
+
+[db]
+port = 54322

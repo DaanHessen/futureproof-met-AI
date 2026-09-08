@@ -20,7 +20,10 @@ import {
   syncEntriesFromBackend, 
   seed5Entries, 
   getDatabaseInspection, 
-  runSqlQuery 
+  runSqlQuery,
+  configureSupabase,
+  pushAllEntriesToSupabase,
+  fetchEntriesFromSupabase 
 } from './storage.js';
 import { renderMoodChart } from './mood-chart.js';
 import { getDailyQuote } from './quotes.js';
@@ -510,12 +513,48 @@ function initDatabaseModal() {
       tabs.forEach(x => x.classList.remove('is-active'));
       t.classList.add('is-active');
       const target = t.getAttribute('data-tab');
-      ['entries', 'users', 'sql'].forEach(tabName => {
+      ['entries', 'users', 'sql', 'supabase'].forEach(tabName => {
         const el = document.getElementById(`tab-content-${tabName}`);
-        if (el) el.style.display = tabName === target ? 'block' : 'none';
+        if (el) el.style.display = tabName === target ? (tabName === 'sql' || tabName === 'supabase' ? 'flex' : 'block') : 'none';
       });
     });
   });
+
+  // Supabase Cloud configuratie & sync handlers
+  const supaUrlInput = document.getElementById('supabase-url-input');
+  const supaKeyInput = document.getElementById('supabase-key-input');
+  const supaSaveBtn = document.getElementById('btn-save-supabase');
+  const supaSyncBtn = document.getElementById('btn-sync-supabase');
+  const supaFeedback = document.getElementById('supabase-feedback');
+
+  if (supaUrlInput) {
+    supaUrlInput.value = localStorage.getItem('fp_supabase_url') || '';
+  }
+
+  if (supaSaveBtn) {
+    supaSaveBtn.addEventListener('click', async () => {
+      const url = supaUrlInput ? supaUrlInput.value.trim() : '';
+      const key = supaKeyInput ? supaKeyInput.value.trim() : '';
+      if (!url) {
+        if (supaFeedback) supaFeedback.innerHTML = '<span style="color:#b91c1c;">Vul je Supabase Project URL of Reference in (bijv. https://[ref].supabase.co).</span>';
+        return;
+      }
+      configureSupabase(url, key);
+      if (supaFeedback) supaFeedback.innerHTML = '<span style="color:var(--accent-blue);">Verbinding geconfigureerd en opgeslagen in browser!</span>';
+    });
+  }
+
+  if (supaSyncBtn) {
+    supaSyncBtn.addEventListener('click', async () => {
+      if (supaFeedback) supaFeedback.innerHTML = 'Synchroniseren naar Supabase Cloud...';
+      const res = await pushAllEntriesToSupabase();
+      if (res.error) {
+        if (supaFeedback) supaFeedback.innerHTML = `<span style="color:#b91c1c;">Fout: ${escapeHtml(res.error)}</span>`;
+      } else {
+        if (supaFeedback) supaFeedback.innerHTML = `<span style="color:#16a34a; font-weight:600;">✓ Succesvol ${res.count} entries gesynchroniseerd naar Supabase!</span>`;
+      }
+    });
+  }
 
   if (seedBtn) {
     seedBtn.addEventListener('click', async () => {
