@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Digitaal Dagboek | Minor Futureproof met AI!</title>
-  <meta name="description" content="Persoonlijk minimalistisch reflectie- en leerdagboek voor de minor Futureproof met AI aan de Hogeschool Utrecht.">
+  <meta name="description" content="Persoonlijk minimalistisch reflectie- en leerdagboek voor de minor Futureproof met AI aan de Hogeschool Utrecht met lokale SQLite database.">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✨</text></svg>">
 
   <!-- Typografie: Plus Jakarta Sans & JetBrains Mono -->
@@ -41,10 +41,26 @@
       </div>
 
       <div class="header-actions">
+        <!-- SQLite Database Inspector Knop (Slide 15) -->
+        <button type="button" class="btn-database" id="db-inspect-btn" title="Bekijk SQLite Database (tabellen & users)">
+          <span>🗄️</span>
+          <span>Database</span>
+        </button>
+
+        <!-- Excel Export Knop (Slide 7) -->
         <button type="button" class="btn-primary-sm" id="export-excel-btn" title="Exporteer dagboek entries naar Excel">
           <span>📊</span>
-          <span>Excel Export</span>
+          <span>Excel</span>
         </button>
+
+        <!-- Gebruiker / Inloggen (Slide 15) -->
+        <div class="user-auth-badge" id="user-auth-badge">
+          <button type="button" class="btn-auth" id="auth-btn">
+            <span>👤</span>
+            <span id="auth-btn-label">Inloggen</span>
+          </button>
+        </div>
+
         <button type="button" class="btn-icon" id="settings-btn" title="Instellingen & API Key" aria-label="Instellingen">
           ⚙️
         </button>
@@ -141,10 +157,148 @@
         <div class="footer-sub">Persoonlijk digitaal leerdagboek &amp; reflectieportaal</div>
       </div>
       <div class="footer-links">
-        <span class="footer-sub">💾 Lokale opslag (privacyvriendelijk)</span>
+        <button type="button" class="footer-btn" id="footer-db-btn">🗄️ SQLite Database</button>
+        <button type="button" class="footer-btn" id="footer-seed-btn">⚡ 5 Entries toevoegen</button>
       </div>
     </div>
   </footer>
+
+  <!-- Modal: SQLite Database Inspector (Slide 15) -->
+  <div class="modal-backdrop" id="db-modal" role="dialog" aria-modal="true" aria-labelledby="db-modal-title">
+    <div class="modal-card modal-card-wide">
+      <div class="modal-header">
+        <div class="db-modal-title-group">
+          <h4 class="modal-title" id="db-modal-title">🗄️ SQLite Database Inspector</h4>
+          <span class="db-path-badge" id="db-path-label">dagboek.sqlite</span>
+        </div>
+        <button type="button" class="btn-close-modal" id="close-db-modal" aria-label="Sluiten">✕</button>
+      </div>
+
+      <div class="db-toolbar">
+        <div class="db-tabs">
+          <button type="button" class="db-tab-btn is-active" data-tab="entries">
+            📝 entries (<span id="db-entries-count">0</span>)
+          </button>
+          <button type="button" class="db-tab-btn" data-tab="users">
+            👥 users (<span id="db-users-count">0</span>)
+          </button>
+          <button type="button" class="db-tab-btn" data-tab="sql">
+            ⚡ SQL Console
+          </button>
+        </div>
+
+        <div class="db-actions-right">
+          <button type="button" class="btn-secondary-sm" id="btn-seed-5-entries" title="Maak 5 voorbeeld-entries aan conform Slide 15">
+            + 5 Entries aanmaken
+          </button>
+          <a href="/api/db/download" download="dagboek.sqlite" class="btn-secondary-sm" id="btn-download-sqlite" title="Download .sqlite bestand">
+            💾 Download DB
+          </a>
+        </div>
+      </div>
+
+      <div class="modal-body db-modal-body">
+        <!-- Tab 1: Entries Tabel -->
+        <div class="db-tab-content is-active" id="tab-content-entries">
+          <div class="db-table-wrapper">
+            <table class="db-table" id="db-entries-table">
+              <thead>
+                <tr>
+                  <th>id</th>
+                  <th>datum</th>
+                  <th>mood</th>
+                  <th>gisteren gedaan</th>
+                  <th>gisteren geleerd</th>
+                  <th>vandaag doen</th>
+                  <th>bijgewerkt</th>
+                </tr>
+              </thead>
+              <tbody id="db-entries-tbody">
+                <tr><td colspan="7" class="td-empty">Laden...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tab 2: Users Tabel (Slide 15 item 6: 'kun je jezelf terugvinden') -->
+        <div class="db-tab-content" id="tab-content-users">
+          <div class="db-table-wrapper">
+            <table class="db-table" id="db-users-table">
+              <thead>
+                <tr>
+                  <th>id</th>
+                  <th>email</th>
+                  <th>naam</th>
+                  <th>aangemaakt op</th>
+                </tr>
+              </thead>
+              <tbody id="db-users-tbody">
+                <tr><td colspan="4" class="td-empty">Laden...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tab 3: SQL Console -->
+        <div class="db-tab-content" id="tab-content-sql">
+          <div class="sql-console-wrapper">
+            <div class="sql-input-row">
+              <input type="text" id="sql-query-input" class="sql-query-input" value="SELECT * FROM entries ORDER BY date DESC LIMIT 10;">
+              <button type="button" class="btn-primary" id="btn-run-sql">Query Uitvoeren</button>
+            </div>
+            <div class="sql-results-area" id="sql-results-area">
+              <div class="sql-empty-hint">Druk op "Query Uitvoeren" om data rechtstreeks op te vragen met SQL.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" id="close-db-modal-btn">Sluiten</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Inloggen & Registreren (Slide 15 item 2 & 3) -->
+  <div class="modal-backdrop" id="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h4 class="modal-title" id="auth-modal-title">Account &amp; Database Login</h4>
+        <button type="button" class="btn-close-modal" id="close-auth-modal" aria-label="Sluiten">✕</button>
+      </div>
+
+      <div class="auth-tabs">
+        <button type="button" class="auth-tab-btn is-active" id="auth-tab-login">Inloggen</button>
+        <button type="button" class="auth-tab-btn" id="auth-tab-register">Registreren (zonder email)</button>
+      </div>
+
+      <form id="auth-form" class="modal-body">
+        <div class="form-group" id="group-auth-name" style="display: none;">
+          <label for="auth-name-input" class="form-label">Naam (optioneel):</label>
+          <input type="text" id="auth-name-input" class="form-input" placeholder="Daan Hessen">
+        </div>
+
+        <div class="form-group">
+          <label for="auth-email-input" class="form-label">E-mailadres:</label>
+          <input type="email" id="auth-email-input" class="form-input" required placeholder="daan@student.hu.nl">
+        </div>
+
+        <div class="form-group">
+          <label for="auth-password-input" class="form-label">Wachtwoord:</label>
+          <input type="password" id="auth-password-input" class="form-input" required placeholder="••••••••">
+        </div>
+
+        <div id="auth-message-box" class="auth-message-box" style="display: none;"></div>
+
+        <div class="modal-footer" style="padding-top: 0.5rem;">
+          <button type="button" class="btn-secondary" id="quick-demo-auth-btn" title="Vul voorbeeldgegevens van Daan in">
+            ⚡ Snelle demo login
+          </button>
+          <button type="submit" class="btn-primary" id="auth-submit-btn">Inloggen</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <!-- Modal: Excel Export -->
   <div class="modal-backdrop" id="export-modal" role="dialog" aria-modal="true" aria-labelledby="export-modal-title">
@@ -173,7 +327,7 @@
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn-secondary" onclick="document.getElementById('export-modal').classList.remove('is-open')">Annuleren</button>
+        <button type="button" class="btn-secondary" id="cancel-export-modal-btn">Annuleren</button>
       </div>
     </div>
   </div>
@@ -197,12 +351,12 @@
         <div class="form-group">
           <label class="form-label">Dataopslag:</label>
           <p class="form-hint">
-            Al je dagboekgegevens worden veilig in de <strong>LocalStorage</strong> van je eigen browser opgeslagen. Er worden geen privégegevens naar externe servers verstuurd.
+            Dit project gebruikt een <strong>lokale SQLite database</strong> (<code>dagboek.sqlite</code>) op de achtergrond én synchroon <strong>LocalStorage</strong> in je browser voor optimale snelheid en privacy.
           </p>
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn-secondary" id="close-settings-modal-btn" onclick="document.getElementById('settings-modal').classList.remove('is-open')">Sluiten</button>
+        <button type="button" class="btn-secondary" id="close-settings-modal-btn">Sluiten</button>
         <button type="button" class="btn-primary" id="save-settings-btn">Opslaan</button>
       </div>
     </div>

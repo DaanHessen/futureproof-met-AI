@@ -1,88 +1,82 @@
 # Technische Documentatie & Ontwerpkeuzes — Digitaal Dagboek
 
-Dit document beschrijft de architectuur, ontwerpfilosofie en de didactische beantwoording van de opdrachten uit **Week 2 — Vibecoding** van de Minor *Futureproof met AI!* (Hogeschool Utrecht).
+Dit document beschrijft de architectuur, ontwerpfilosofie en didactische beantwoording van alle opdrachten uit **Week 2 — Vibecoding** (Slides 1 tot en met 15) van de Minor *Futureproof met AI!* (Hogeschool Utrecht).
 
 ---
 
-## 1. Didactische Verantwoording (Collegevragen)
+## 1. Didactische Verantwoording (Collegevragen & Slides)
 
-In de presentatie van Gert van Hardeveld worden verschillende onderzoeksvragen gesteld:
+### Slide 15: Werken met een database (SQLite Integratie)
+> *"1. Maak Database  
+> 2. Login met registratie, zonder email bevestiging  
+> 3. Registreer en log in  
+> 4. Maak 5 nieuwe entries  
+> 5. Ga naar database, zie je de entries  
+> 6. Ga naar users en kun je je zelf terugvinden  
+> 7. Koppeling met AI voor spreuk van de dag"*
 
-### Vraag 4 & 5: Dataopslag en analyse
-> *"Zoek eens op waar je data nu staat. Vraag het aan AI en kijk eens of je de data ook kunt vinden? Wat is het voordeel van deze opslag en wat is het nadeel?"*
-
-#### Waar staat de data?
-De data bevindt zich in de `window.localStorage` van de browser, onder de sleutel `fp_dagboek_entries_v1`. Dit is een client-side key-value store die persistent blijft zolang de browser cache niet expliciet gewist wordt. In de browser-ontwikkelaarstools (`F12` -> *Application* of *Storage* -> *Local Storage*) is de volledige JSON-structuur per datum in te zien en te bewerken.
-
-#### Voordelen:
-1. **Privacy-by-design**: Geen servers die persoonlijke reflecties verzamelen. Voldoet optimaal aan de AVG/GDPR principes.
-2. **Zero-latency**: Geen netwerklatentie bij opslaan of opvragen; direct interactief.
-3. **Offline-first**: De gebruiker kan altijd notities bijwerken, zelfs zonder netwerkverbinding.
-4. **Geen operationele kosten**: Geen cloud databases (zoals Supabase of Firebase) nodig.
-
-#### Nadelen:
-1. **Apparaatsgebondenheid**: Geen cross-device synchronisatie tussen desktop en smartphone.
-2. **Kwetsbaarheid voor opschoning**: Als een gebruiker browsergegevens wist, gaat de lokale opslag verloren (gecompenseerd door de ingebouwde Excel/CSV-export).
-3. **Opslaglimiet**: Browsers hanteren meestal een quotum van 5MB tot 10MB (voor tekstuele dagboeknotities is dit overigens ruim voldoende voor jaren aan data).
+In plaats van een externe clouddienst (zoals Supabase in Lovable) is voor dit project gekozen voor een **lokale SQLite database** (`dagboek.sqlite`). Dit biedt enorme didactische en praktische voordelen:
+1. **Zero-setup & Lokaal eigenaarschap**: Geen externe cloud tokens of kredietlimieten; draait volledig standalone via Node.js 22 built-in `node:sqlite`.
+2. **Authenticatie zonder e-mailbevestiging**: De gebruiker kan zich registreren met enkel een e-mail en wachtwoord. Het wachtwoord wordt veilig gehasht met de Node.js crypto bibliotheek (`scrypt`). Er is geen wachttijd voor e-mailverificatie, zodat de flow naadloos is.
+3. **Database Inspector in de UI**: Via de knop **"🗄️ Database"** opent een geïntegreerde inspector:
+   - **Tabel `entries`**: Toont alle opgeslagen dagboeknotities, mood scores en datums.
+   - **Tabel `users`**: Toont alle geregistreerde accounts, met een speciale *"Jij"* badge bij het actieve account, zodat de student zichzelf direct terugvindt conform Slide 15 item 6.
+   - **SQL Console**: Biedt studenten de mogelijkheid om echte SQL queries uit te voeren (bijv. `SELECT * FROM entries WHERE mood = 5`).
+   - **5 Voorbeeld-entries knop**: Met één klik kunnen 5 representatieve dagboekdagen gegenereerd worden om de database en grafiek te testen.
 
 ---
 
-### Vraag over API-keys (Slide 11 & 12)
-> *"Waarom werkt de spreuk niet meer in productie zonder API key configuratie en hoe lossen we dit op?"*
+### Slide 7: Vragen over Dataopslag
+> *"Wat is het voordeel van deze opslag en wat is het nadeel?"*
 
-Wanneer een client-side applicatie direct communiceert met Google Gemini via een in de code geschreven API key, ligt die sleutel open en bloot in de broncode op GitHub. Iedereen met toegang tot de repository kan deze sleutel ontvreemden.
+#### Vergelijking LocalStorage vs. SQLite:
 
-#### Onze Oplossing:
-In dit project is een hybride architectuur geïmplementeerd:
-1. **Vercel Serverless Function (`api/spreuk.js`)**:
-   De serverless functie draait in Node.js op de Vercel infrastructuur. Hier wordt `process.env.GEMINI_API_KEY` uitgelezen. De bezoeker in de browser ziet enkel het resultaat van de gegenereerde spreuk en nooit de sleutel zelf.
-2. **Graceful Degradation**:
-   Als er nog geen sleutel is ingesteld op Vercel of als de app lokaal offline geopend wordt, crasht de applicatie niet. In plaats daarvan wordt automatisch een inspirerende, zorgvuldig gecureerde Nederlandse AI-spreuk getoond, met een duidelijke melding in de console en instellingen hoe de gebruiker zijn sleutel kan toevoegen.
+| Criterium | LocalStorage (Slide 7 & 8) | SQLite Database (Slide 15) |
+| :--- | :--- | :--- |
+| **Opslaglocatie** | In het geheugen van de webbrowser | In een bestand op de harde schijf (`dagboek.sqlite`) |
+| **Datastructuur** | Sleutel-waarde paren (JSON tekst) | Relationele tabellen met typed kolommen & foreign keys |
+| **Query mogelijkheden** | JavaScript filters | Krachtige SQL queries (`JOIN`, `GROUP BY`, indexering) |
+| **Multi-user ondersteuning** | Nee (slechts 1 browser sessie) | Ja (`users` tabel met `user_id` relatie) |
+| **Backups & Exporteren** | Gevoelig voor browser-opruiming | Eenvoudig bestand `.sqlite` kopiëren of downloaden |
+
+---
+
+### Slide 11 & 12: Werken met API Keys & Gemini AI
+> *"Waarom werkt de spreuk niet meer in productie zonder API key en hoe lossen we dit op?"*
+
+Een API key in frontend code is zichtbaar voor iedereen in de netwerkinspecteur van de browser. In dit project draait de aanroep via de backend:
+- Lokaal: via de endpoint `/api/spreuk` in `server.js`.
+- Vercel: via de serverless function `api/spreuk.js`.
+Beide omgevingen lezen veilig de `GEMINI_API_KEY` omgevingsvariabele uit zonder deze bloot te stellen aan de client. Tevens is er een graceful fallback naar 15+ gecureerde Nederlandse wijsheden over technologie en groei.
 
 ---
 
 ## 2. Frontend Design Principes
 
-Volgens de *Frontend Design* richtlijnen is gekozen voor een ontwerp dat ver weg blijft van generieke AI-sjablonen (zoals overdadig warm-crème met terracotta of schreeuwerig cyberpunk neongroen).
-
-### Visual Identity & Karakter
-- **Sfeer**: Helder, sereen, minimalistisch en focus-gedreven. De interface dient als een rustige digitale werkplek voor dagelijkse introspectie en focus.
-- **Kleurpalet**:
-  - Mist & Leisteen basis (`#f8fafc` / `#090d16`)
-  - Subtiele, haarscherpe verdelers (`#e2e8f0` / `#1f293d`)
-  - Accentkleur: Diep elektrisch blauw (`#2563eb`) en smaragdgroen (`#059669`) voor succes- en opslagstatussen.
-  - Gemoedstoestand-accenten: Warm amber (`#d97706` / `#f59e0b`) voor de 1-5 sterren component.
-- **Typografisch Systeem**:
-  - *Plus Jakarta Sans*: Voor de interface, koppen en tekstvelden (moderne neo-grotesk met uitstekende schermleesbaarheid).
-  - *JetBrains Mono*: Voor badges, datums en technische metadata.
-  - *Cursief serif/italic styling*: Voor het AI citaat, waardoor de spreuk een reflectief en tijdloos karakter krijgt.
-- **Signature Element**:
-  - De **10-Dagen Mood Horizon**: Een dynamische, interactieve vectorgrafiek (SVG) met een zachte gradient curve en zwevende tooltips die in één oogopslag inzicht biedt in mentale stabiliteit en veerkracht.
+Conform de **frontend-design** richtlijnen:
+- **Rustgevend & Focusgericht**: Geen overdadige animaties of sjabloonachtige AI-gradiënten. Een ingetogen leisteen/mist achtergrond (`#f8fafc`) met diepe marineblauwe tekst (`#0f172a`).
+- **Typografie**: *Plus Jakarta Sans* voor optimale UI-leesbaarheid, *JetBrains Mono* voor tabellen en metadata, en een verfijnde cursieve zetwijze voor het dagelijkse citaat.
+- **10-Dagen Mood Horizon**: Een responsieve SVG-vectorcurve met gradientvlak, interactieve knooppunten en automatische detectie van gemoedstoestand-schommelingen.
 
 ---
 
-## 3. Modulaire Code Architectuur
+## 3. Modulaire Architectuur & Bestandsstructuur
 
-De code is strikt opgedeeld volgens het Single Responsibility Principle (SRP):
-
-| Bestand | Verantwoordelijkheid |
+| Bestand | Rol & Verantwoordelijkheid |
 | :--- | :--- |
-| `index.html` | Semantische structuur, toegankelijkheid (WAI-ARIA) en modal containers. |
-| `css/style.css` | Design tokens, CSS-variabelen, dark mode media-queries en responsieve breakpoints. |
-| `js/questions.js` | Modulaire configuratie van reflectievragen en gemoedstoestanden. |
-| `js/storage.js` | LocalStorage CRUD-operaties, streak-berekening en Excel/CSV generatie. |
-| `js/mood-chart.js` | SVG rendering, Bezier curve wiskunde, tooltips en moodswing trendanalyse. |
-| `js/quotes.js` | AI API integratie, caching per datum en lokale gecureerde spreuken. |
-| `js/app.js` | Hoofdcoördinatie, formulierverwerking, debounce auto-save en sneltoetsen. |
-| `api/spreuk.js` | Vercel Serverless Function voor veilige Google Gemini integratie. |
+| `server.js` | Lokale Node.js 22 HTTP server met REST API endpoints voor auth, entries en database inspectie. |
+| `db.js` | SQLite DatabaseSync manager, tabellen initialisatie, password hashing en queries. |
+| `dagboek.sqlite` | Het daadwerkelijke SQLite databasebestand. |
+| `index.html` | Semantische HTML5 hoofdstructuur met Database Inspector & Modals. |
+| `css/style.css` | Design tokens, responsieve layout, dark/light mode en databasetabellen. |
+| `js/questions.js` | Modulaire vraag- en moodconfiguraties. |
+| `js/storage.js` | Client storage manager met SQLite REST API synchronisatie en LocalStorage fallback. |
+| `js/mood-chart.js` | 10-dagen interactieve SVG mood curve & trendanalyse. |
+| `js/quotes.js` | AI spreukgenerator met Google Gemini & gecureerde fallbacks. |
+| `js/app.js` | Hoofdscript: coördinatie, formulierafhandeling, modal dialogen en sneltoetsen. |
+| `api/spreuk.js` | Vercel Serverless Function voor Gemini AI Dagspreuk. |
+| `api/db.js` | Vercel Serverless Function voor database inspectie. |
 
 ---
 
-## 4. Toegankelijkheid (A11y) & Sneltoetsen
-
-- Volledig te bedienen via toetsenbord (`Tab`, `Shift+Tab`, `Space`, `Enter`).
-- Handige sneltoetsen:
-  - `Alt + ←`: Vorige dag
-  - `Alt + →`: Volgende dag
-  - `T`: Direct naar Vandaag springen
-- Hoge contrastverhoudingen (WCAG 2.1 AA compliant) in zowel lichte als donkere modus.
+*Gemaakt door Daan Hessen voor de Minor Futureproof met AI! aan de Hogeschool Utrecht.*

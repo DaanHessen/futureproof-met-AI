@@ -1330,3 +1330,310 @@ input, textarea {
     align-items: flex-start;
   }
 }
+
+/* ==========================================================================
+   SQLite Database & Authenticatie Componenten (Slide 15)
+   ========================================================================== */
+.btn-database {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.8rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: all var(--transition-fast);
+}
+
+.btn-database:hover {
+  background: var(--bg-subtle);
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+}
+
+.btn-auth {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.42rem 0.75rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  transition: all var(--transition-fast);
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.btn-auth:hover {
+  border-color: var(--border-focus);
+  color: var(--text-primary);
+}
+
+.btn-auth.is-logged-in {
+  background: var(--accent-blue-subtle);
+  color: var(--accent-blue);
+  border-color: rgba(37, 99, 235, 0.25);
+}
+
+/* Brede modal voor database weergave */
+.modal-card-wide {
+  max-width: 860px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.db-modal-title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.db-path-badge {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.18rem 0.5rem;
+  border-radius: var(--radius-sm);
+  background: var(--bg-subtle);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+}
+
+.db-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.db-tabs {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: var(--bg-page);
+  padding: 0.2rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+}
+
+.db-tab-btn {
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.db-tab-btn:hover {
+  color: var(--text-primary);
+}
+
+.db-tab-btn.is-active {
+  background: var(--bg-surface);
+  color: var(--accent-blue);
+  box-shadow: var(--shadow-sm);
+}
+
+.db-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.btn-secondary-sm {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: var(--bg-subtle);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all var(--transition-fast);
+}
+
+.btn-secondary-sm:hover {
+  background: var(--bg-surface);
+  border-color: var(--border-focus);
+  color: var(--text-primary);
+}
+
+.db-modal-body {
+  overflow-y: auto;
+  padding: 0.5rem 0;
+  max-height: 52vh;
+}
+
+.db-tab-content {
+  display: none;
+}
+
+.db-tab-content.is-active {
+  display: block;
+}
+
+.db-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-page);
+}
+
+.db-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+  text-align: left;
+}
+
+.db-table th {
+  background: var(--bg-subtle);
+  padding: 0.6rem 0.75rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+
+.db-table td {
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  vertical-align: top;
+}
+
+.db-table tr:hover td {
+  background: var(--bg-card-hover);
+}
+
+.db-table .td-id {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--accent-blue);
+}
+
+.db-table .td-date {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.db-table .td-mood {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.db-table .td-text {
+  max-width: 200px;
+  line-height: 1.4;
+}
+
+.db-table .td-empty {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* SQL Console */
+.sql-console-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.sql-input-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.sql-query-input {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  padding: 0.6rem 0.85rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: var(--bg-page);
+  color: var(--text-primary);
+  outline: none;
+}
+
+.sql-query-input:focus {
+  border-color: var(--border-focus);
+}
+
+.sql-results-area {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-page);
+  min-height: 140px;
+  max-height: 300px;
+  overflow: auto;
+  padding: 0.5rem;
+}
+
+.sql-empty-hint {
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+/* Auth modal styling */
+.auth-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 0.5rem;
+}
+
+.auth-tab-btn {
+  flex: 1;
+  padding: 0.6rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-bottom: 2px solid transparent;
+  transition: all var(--transition-fast);
+}
+
+.auth-tab-btn.is-active {
+  color: var(--accent-blue);
+  border-bottom-color: var(--accent-blue);
+}
+
+.auth-message-box {
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius-md);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.auth-message-box.error {
+  background: rgba(225, 29, 72, 0.1);
+  color: var(--accent-rose);
+  border: 1px solid rgba(225, 29, 72, 0.25);
+}
+
+.auth-message-box.success {
+  background: var(--accent-emerald-subtle);
+  color: var(--accent-emerald);
+  border: 1px solid rgba(5, 150, 105, 0.25);
+}

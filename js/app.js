@@ -1,7 +1,8 @@
 /**
  * js/app.js
  * Hoofdscript voor het digitaal dagboek.
- * Coördineert gebruikersinteractie, datumselectie, auto-save, vraagrendering en thema.
+ * Coördineert gebruikersinteractie, datumselectie, auto-save, vraagrendering,
+ * SQLite database inspectie en gebruikersauthenticatie.
  */
 
 import { journalQuestions, moodOptions } from './questions.js';
@@ -9,21 +10,29 @@ import {
   getEntry, 
   saveEntry, 
   hasEntry, 
-  getAllEntries, 
   getLastNDays, 
   getStatistics, 
   exportToExcel, 
   getSettings, 
-  saveSettings 
+  saveSettings,
+  apiLogin,
+  apiRegister,
+  apiLogout,
+  checkAuthSession,
+  getStoredAuth,
+  syncEntriesFromBackend,
+  seed5Entries,
+  getDatabaseInspection,
+  runSqlQuery
 } from './storage.js';
 import { renderMoodChart } from './mood-chart.js';
 import { getDailyQuote } from './quotes.js';
 
-// Huidige geselecteerde datum (YYYY-MM-DD)
 let activeDateStr = getTodayDateString();
 let autoSaveTimeout = null;
+let currentAuthMode = 'login'; // 'login' | 'register'
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   initTheme();
   initDateNavigation();
   initQuote();
@@ -31,7 +40,12 @@ document.addEventListener('DOMContentLoaded', () => {
   initQuestions();
   initChart();
   initExportAndSettings();
+  initAuthModal();
+  initDatabaseModal();
   initKeyboardShortcuts();
+
+  // Controleer actieve sessie en synchroniseer
+  await checkUserSession();
 
   // Laad de data voor de actieve datum
   loadEntryForDate(activeDateStr);
@@ -45,9 +59,6 @@ window.addEventListener('dagboek:saved', () => {
   renderMoodChart('mood-chart-container', (date) => selectDate(date));
 });
 
-/**
- * Hulpfunctie voor vandaag in YYYY-MM-DD formaat volgens lokale tijdzone.
- */
 function getTodayDateString() {
   const now = new Date();
   const year = now.getFullYear();
@@ -86,7 +97,309 @@ function applyTheme(theme) {
 }
 
 /**
- * Initialiseer datumnavigatie: pijltjes, date-picker, 'Vandaag' knop en strip.
+ * Controleer en update de authenticatiestatus van de gebruiker.
+ */
+async function checkUserSession() {
+  const user = await checkAuthSession();
+  updateAuthUI(user);
+  if (user) {
+    await syncEntriesFromBackend();
+    loadEntryForDate(activeDateStr);
+  }
+}
+
+function updateAuthUI(user) {
+  const authBtn = document.getElementById('auth-btn');
+  const label = document.getElementById('auth-btn-label');
+  if (!authBtn || !label) return;
+
+  if (user) {
+    label.textContent = user.name || user.email.split('@')[0];
+    authBtn.classList.add('is-logged-in');
+    authBtn.title = `Ingelogd als ${user.email} (klik om uit te loggen)`;
+  } else {
+    label.textContent = 'Inloggen';
+    authBtn.classList.remove('is-logged-in');
+    authBtn.title = 'Inloggen of registreren zonder e-mail';
+  }
+}
+
+/**
+ * Initialiseer de Authenticatie Modal (Slide 15 item 2 & 3)
+ */
+function initAuthModal() {
+  const authBtn = document.getElementById('auth-btn');
+  const modal = document.getElementById('auth-modal');
+  const closeBtn = document.getElementById('close-auth-modal');
+  const form = document.getElementById('auth-form');
+  const tabLogin = document.getElementById('auth-tab-login');
+  const tabRegister = document.getElementById('auth-tab-register');
+  const nameGroup = document.getElementById('group-auth-name');
+  const submitBtn = document.getElementById('auth-submit-btn');
+  const msgBox = document.getElementById('auth-message-box');
+  const demoBtn = document.getElementById('quick-demo-auth-btn');
+
+  if (authBtn) {
+    authBtn.addEventListener('click', async () => {
+      const current = getStoredAuth();
+      if (current && current.user) {
+        if (confirm(`Je bent momenteel ingelogd als ${current.user.email}.\nWil je uitloggen?`)) {
+          await apiLogout();
+          updateAuthUI(null);
+          alert('Je bent succesvol uitgelogd.');
+        }
+      } else {
+        if (modal) modal.classList.add('is-open');
+      }
+    });
+  }
+
+  if (closeBtn && modal) {
+    closeBtn.addEventListener('click', () => modal.classList.remove('is-open'));
+  }
+
+  if (tabLogin && tabRegister) {
+    tabLogin.addEventListener('click', () => {
+      currentAuthMode = 'login';
+      tabLogin.classList.add('is-active');
+      tabRegister.classList.remove('is-active');
+      if (nameGroup) nameGroup.style.display = 'none';
+      if (submitBtn) submitBtn.textContent = 'Inloggen';
+      hideAuthMessage();
+    });
+
+    tabRegister.addEventListener('click', () => {
+      currentAuthMode = 'register';
+      tabRegister.classList.add('is-active');
+      tabLogin.classList.remove('is-active');
+      if (nameGroup) nameGroup.style.display = 'block';
+      if (submitBtn) submitBtn.textContent = 'Account Aanmaken';
+      hideAuthMessage();
+    });
+  }
+
+  if (demoBtn) {
+    demoBtn.addEventListener('click', () => {
+      const emailInput = document.getElementById('auth-email-input');
+      const passInput = document.getElementById('auth-password-input');
+      const nameInput = document.getElementById('auth-name-input');
+      if (emailInput) emailInput.value = 'daan@student.hu.nl';
+      if (passInput) passInput.value = 'Futureproof2026!';
+      if (nameInput) nameInput.value = 'Daan Hessen';
+    });
+  }
+
+  if (form) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('auth-email-input').value.trim();
+      const password = document.getElementById('auth-password-input').value;
+      const name = document.getElementById('auth-name-input')?.value.trim();
+
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Verwerken...';
+      }
+
+      try {
+        let user;
+        if (currentAuthMode === 'register') {
+          user = await apiRegister(email, password, name);
+          showAuthMessage('Account aangemaakt en direct ingelogd zonder verificatie!', 'success');
+        } else {
+          user = await apiLogin(email, password);
+          showAuthMessage('Succesvol ingelogd!', 'success');
+        }
+
+        updateAuthUI(user);
+        await syncEntriesFromBackend();
+        loadEntryForDate(activeDateStr);
+
+        setTimeout(() => {
+          if (modal) modal.classList.remove('is-open');
+          hideAuthMessage();
+        }, 900);
+      } catch (err) {
+        showAuthMessage(err.message || 'Er is een fout opgetreden', 'error');
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = currentAuthMode === 'register' ? 'Account Aanmaken' : 'Inloggen';
+        }
+      }
+    });
+  }
+
+  function showAuthMessage(text, type) {
+    if (!msgBox) return;
+    msgBox.textContent = text;
+    msgBox.className = `auth-message-box ${type}`;
+    msgBox.style.display = 'block';
+  }
+
+  function hideAuthMessage() {
+    if (!msgBox) return;
+    msgBox.style.display = 'none';
+  }
+}
+
+/**
+ * Initialiseer de SQLite Database Inspector Modal (Slide 15 item 5 & 6)
+ */
+function initDatabaseModal() {
+  const dbBtn = document.getElementById('db-inspect-btn');
+  const footerDbBtn = document.getElementById('footer-db-btn');
+  const footerSeedBtn = document.getElementById('footer-seed-btn');
+  const modal = document.getElementById('db-modal');
+  const closeBtn = document.getElementById('close-db-modal');
+  const closeBottomBtn = document.getElementById('close-db-modal-btn');
+  const seedBtn = document.getElementById('btn-seed-5-entries');
+  const runSqlBtn = document.getElementById('btn-run-sql');
+  const tabs = document.querySelectorAll('.db-tab-btn');
+
+  const openModal = async () => {
+    if (modal) {
+      modal.classList.add('is-open');
+      await loadDatabaseInspectionView();
+    }
+  };
+
+  if (dbBtn) dbBtn.addEventListener('click', openModal);
+  if (footerDbBtn) footerDbBtn.addEventListener('click', openModal);
+
+  if (closeBtn && modal) closeBtn.addEventListener('click', () => modal.classList.remove('is-open'));
+  if (closeBottomBtn && modal) closeBottomBtn.addEventListener('click', () => modal.classList.remove('is-open'));
+
+  // Tab switcher
+  tabs.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabs.forEach(b => b.classList.remove('is-active'));
+      btn.classList.add('is-active');
+
+      const targetTab = btn.getAttribute('data-tab');
+      document.querySelectorAll('.db-tab-content').forEach(c => c.classList.remove('is-active'));
+      const activeContent = document.getElementById(`tab-content-${targetTab}`);
+      if (activeContent) activeContent.classList.add('is-active');
+    });
+  });
+
+  // 5 Entries toevoegen knop (Slide 15 item 4)
+  const handleSeed = async () => {
+    const success = await seed5Entries();
+    if (success) {
+      alert('5 voorbeeld-entries zijn succesvol toegevoegd aan SQLite!');
+      await loadDatabaseInspectionView();
+      loadEntryForDate(activeDateStr);
+    }
+  };
+
+  if (seedBtn) seedBtn.addEventListener('click', handleSeed);
+  if (footerSeedBtn) footerSeedBtn.addEventListener('click', handleSeed);
+
+  // SQL Console uitvoeren
+  if (runSqlBtn) {
+    runSqlBtn.addEventListener('click', async () => {
+      const sqlInput = document.getElementById('sql-query-input');
+      const resultsArea = document.getElementById('sql-results-area');
+      const query = sqlInput ? sqlInput.value.trim() : '';
+
+      if (!query) return;
+
+      resultsArea.innerHTML = '<div class="sql-empty-hint">Query uitvoeren...</div>';
+
+      const res = await runSqlQuery(query);
+      if (res.error) {
+        resultsArea.innerHTML = `<div class="auth-message-box error" style="display:block;">Fout: ${escapeHtml(res.error)}</div>`;
+        return;
+      }
+
+      if (!res.rows || res.rows.length === 0) {
+        resultsArea.innerHTML = '<div class="sql-empty-hint">Geen rijen geretourneerd door de query.</div>';
+        return;
+      }
+
+      const headers = Object.keys(res.rows[0]);
+      let tableHtml = `<table class="db-table"><thead><tr>`;
+      headers.forEach(h => { tableHtml += `<th>${escapeHtml(h)}</th>`; });
+      tableHtml += `</tr></thead><tbody>`;
+
+      res.rows.forEach(r => {
+        tableHtml += `<tr>`;
+        headers.forEach(h => {
+          const val = r[h] !== null && r[h] !== undefined ? String(r[h]) : 'NULL';
+          tableHtml += `<td>${escapeHtml(val)}</td>`;
+        });
+        tableHtml += `</tr>`;
+      });
+      tableHtml += `</tbody></table>`;
+      resultsArea.innerHTML = `<div class="db-table-wrapper">${tableHtml}</div>`;
+    });
+  }
+}
+
+async function loadDatabaseInspectionView() {
+  const data = await getDatabaseInspection();
+  const entriesTbody = document.getElementById('db-entries-tbody');
+  const usersTbody = document.getElementById('db-users-tbody');
+  const entriesCount = document.getElementById('db-entries-count');
+  const usersCount = document.getElementById('db-users-count');
+  const pathLabel = document.getElementById('db-path-label');
+
+  if (pathLabel && data.dbPath) {
+    pathLabel.textContent = data.dbPath.split('/').pop() || 'dagboek.sqlite';
+  }
+
+  // 1. Vul Entries tabel
+  if (entriesTbody) {
+    if (!data.entries || data.entries.length === 0) {
+      entriesTbody.innerHTML = `<tr><td colspan="7" class="td-empty">Geen entries gevonden in de SQLite database.</td></tr>`;
+      if (entriesCount) entriesCount.textContent = '0';
+    } else {
+      if (entriesCount) entriesCount.textContent = data.entries.length;
+      let html = '';
+      data.entries.forEach(e => {
+        html += `
+          <tr>
+            <td class="td-id">#${e.id || '-'}</td>
+            <td class="td-date">${e.date}</td>
+            <td class="td-mood">${e.mood > 0 ? e.mood + ' ★' : '—'}</td>
+            <td class="td-text">${escapeHtml(e.yesterday_done || '—')}</td>
+            <td class="td-text">${escapeHtml(e.yesterday_learned || '—')}</td>
+            <td class="td-text">${escapeHtml(e.today_planned || '—')}</td>
+            <td style="font-size: 0.7rem; color: var(--text-muted);">${e.updated_at ? e.updated_at.slice(0, 16) : '—'}</td>
+          </tr>
+        `;
+      });
+      entriesTbody.innerHTML = html;
+    }
+  }
+
+  // 2. Vul Users tabel (Slide 15 item 6: 'kun je jezelf terugvinden')
+  if (usersTbody) {
+    if (!data.users || data.users.length === 0) {
+      usersTbody.innerHTML = `<tr><td colspan="4" class="td-empty">Geen geregistreerde gebruikers.</td></tr>`;
+      if (usersCount) usersCount.textContent = '0';
+    } else {
+      if (usersCount) usersCount.textContent = data.users.length;
+      let html = '';
+      data.users.forEach(u => {
+        const isCurrent = getStoredAuth()?.user?.id === u.id;
+        html += `
+          <tr style="${isCurrent ? 'background: var(--accent-blue-subtle);' : ''}">
+            <td class="td-id">#${u.id}</td>
+            <td><strong>${escapeHtml(u.email)}</strong> ${isCurrent ? '<span class="date-badge is-today" style="margin-left: 0.3rem;">Jij</span>' : ''}</td>
+            <td>${escapeHtml(u.name || '—')}</td>
+            <td style="font-size: 0.72rem; color: var(--text-muted);">${u.created_at ? u.created_at.slice(0, 16) : '—'}</td>
+          </tr>
+        `;
+      });
+      usersTbody.innerHTML = html;
+    }
+  }
+}
+
+/**
+ * Initialiseer datumnavigatie
  */
 function initDateNavigation() {
   const prevBtn = document.getElementById('prev-day-btn');
@@ -94,30 +407,19 @@ function initDateNavigation() {
   const todayBtn = document.getElementById('today-btn');
   const datePicker = document.getElementById('journal-date-picker');
 
-  if (prevBtn) {
-    prevBtn.addEventListener('click', () => stepDate(-1));
-  }
-  if (nextBtn) {
-    nextBtn.addEventListener('click', () => stepDate(1));
-  }
-  if (todayBtn) {
-    todayBtn.addEventListener('click', () => selectDate(getTodayDateString()));
-  }
+  if (prevBtn) prevBtn.addEventListener('click', () => stepDate(-1));
+  if (nextBtn) nextBtn.addEventListener('click', () => stepDate(1));
+  if (todayBtn) todayBtn.addEventListener('click', () => selectDate(getTodayDateString()));
   if (datePicker) {
     datePicker.value = activeDateStr;
     datePicker.addEventListener('change', (e) => {
-      if (e.target.value) {
-        selectDate(e.target.value);
-      }
+      if (e.target.value) selectDate(e.target.value);
     });
   }
 
   renderDateStrip();
 }
 
-/**
- * Schakel een aantal dagen vooruit of achteruit.
- */
 function stepDate(daysOffset) {
   const d = new Date(activeDateStr + 'T12:00:00');
   d.setDate(d.getDate() + daysOffset);
@@ -125,15 +427,9 @@ function stepDate(daysOffset) {
   selectDate(nextStr);
 }
 
-/**
- * Selecteer een specifieke datum en ververs de UI.
- */
 function selectDate(dateStr) {
   if (activeDateStr === dateStr) return;
-  
-  // Sla eerst eventuele niet-opgeslagen wijzigingen van de huidige dag direct op
   flushCurrentEntrySave();
-
   activeDateStr = dateStr;
 
   const datePicker = document.getElementById('journal-date-picker');
@@ -144,9 +440,6 @@ function selectDate(dateStr) {
   updateDateHeading();
 }
 
-/**
- * Werk de datumkop bij met een mooie Nederlandse weergave.
- */
 function updateDateHeading() {
   const headingElem = document.getElementById('active-date-heading');
   const badgeElem = document.getElementById('active-date-badge');
@@ -185,9 +478,6 @@ function updateDateHeading() {
   }
 }
 
-/**
- * Render de interactieve datumstrip met de afgelopen 7 dagen.
- */
 function renderDateStrip() {
   const container = document.getElementById('date-strip-container');
   if (!container) return;
@@ -224,9 +514,6 @@ function renderDateStrip() {
   });
 }
 
-/**
- * Render de modulaire dagboekvragen dynamisch in de DOM.
- */
 function initQuestions() {
   const container = document.getElementById('questions-container');
   if (!container) return;
@@ -258,7 +545,6 @@ function initQuestions() {
 
   container.innerHTML = html;
 
-  // Koppel auto-save listeners aan elk textarea
   journalQuestions.forEach(q => {
     const textarea = document.getElementById(`input-${q.id}`);
     if (textarea) {
@@ -275,9 +561,6 @@ function adjustTextareaHeight(textarea) {
   textarea.style.height = Math.max(textarea.scrollHeight, 90) + 'px';
 }
 
-/**
- * Initialiseer de mood (sterren) selectie.
- */
 function initMoodSelector() {
   const starsContainer = document.getElementById('mood-stars-group');
   if (!starsContainer) return;
@@ -299,17 +582,14 @@ function initMoodSelector() {
 
   starsContainer.innerHTML = html;
 
-  // Event listeners voor sterren
   starsContainer.querySelectorAll('.mood-star-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const val = Number(btn.getAttribute('data-mood-value'));
       const currentEntry = getEntry(activeDateStr);
-      // Toggle uit als er al op dezelfde ster wordt geklikt
       const newMood = currentEntry.mood === val ? 0 : val;
       setMoodValue(newMood, true);
     });
 
-    // Hover preview
     btn.addEventListener('mouseenter', () => {
       const val = Number(btn.getAttribute('data-mood-value'));
       previewMoodHighlight(val);
@@ -362,16 +642,10 @@ function setMoodValue(val, triggerSave = true) {
   }
 }
 
-/**
- * Laad een entry in de formuliervelden.
- */
 function loadEntryForDate(dateStr) {
   const entry = getEntry(dateStr);
-
-  // Vul mood in
   setMoodValue(entry.mood || 0, false);
 
-  // Vul vragen in
   journalQuestions.forEach(q => {
     const textarea = document.getElementById(`input-${q.id}`);
     if (textarea) {
@@ -384,9 +658,6 @@ function loadEntryForDate(dateStr) {
   updateSaveStatus(entry.updatedAt ? `Laatst opgeslagen om ${formatTime(entry.updatedAt)}` : 'Nog niet opgeslagen voor deze datum');
 }
 
-/**
- * Verzamel huidige formulierdata en sla op in localStorage.
- */
 function flushCurrentEntrySave() {
   clearTimeout(autoSaveTimeout);
 
@@ -396,10 +667,7 @@ function flushCurrentEntrySave() {
     activeMood = activeBtn.length;
   }
 
-  const data = {
-    mood: activeMood
-  };
-
+  const data = { mood: activeMood };
   journalQuestions.forEach(q => {
     const textarea = document.getElementById(`input-${q.id}`);
     data[q.id] = textarea ? textarea.value : '';
@@ -410,15 +678,12 @@ function flushCurrentEntrySave() {
     const now = new Date();
     updateSaveStatus(`Opgeslagen om ${formatTime(now)} ✓`, 'saved');
   } else {
-    updateSaveStatus('Fout bij opslaan in LocalStorage', 'error');
+    updateSaveStatus('Fout bij opslaan', 'error');
   }
 }
 
-/**
- * Debounced trigger voor auto-save bij typen.
- */
 function triggerAutoSave() {
-  updateSaveStatus('Opslaan...', 'saving');
+  updateSaveStatus('Opslaan in SQLite...', 'saving');
   clearTimeout(autoSaveTimeout);
   autoSaveTimeout = setTimeout(() => {
     flushCurrentEntrySave();
@@ -438,9 +703,6 @@ function formatTime(dateObjOrString) {
   return d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
 }
 
-/**
- * AI Spreuk van de Dag integratie.
- */
 function initQuote() {
   const quoteText = document.getElementById('daily-quote-text');
   const quoteAuthor = document.getElementById('daily-quote-author');
@@ -468,7 +730,6 @@ function initQuote() {
     }
   }
 
-  // Laad eerste spreuk
   loadQuote(false);
 
   if (refreshBtn) {
@@ -478,16 +739,10 @@ function initQuote() {
   }
 }
 
-/**
- * 10-Dagen Mood Chart initialiseren.
- */
 function initChart() {
   renderMoodChart('mood-chart-container', (date) => selectDate(date));
 }
 
-/**
- * Werk statistieken in de header bij (streak & totaal).
- */
 function updateHeaderStats() {
   const stats = getStatistics();
   const streakElem = document.getElementById('header-streak-count');
@@ -497,27 +752,24 @@ function updateHeaderStats() {
   if (totalDaysElem) totalDaysElem.textContent = stats.totalDays;
 }
 
-/**
- * Export modal en Instellingen modal.
- */
 function initExportAndSettings() {
-  // Export buttons
   const exportHeaderBtn = document.getElementById('export-excel-btn');
   const exportModal = document.getElementById('export-modal');
   const closeExportBtn = document.getElementById('close-export-modal');
+  const cancelExportBtn = document.getElementById('cancel-export-modal-btn');
   const confirmXlsxBtn = document.getElementById('confirm-export-xlsx');
   const confirmCsvBtn = document.getElementById('confirm-export-csv');
 
   if (exportHeaderBtn && exportModal) {
-    exportHeaderBtn.addEventListener('click', () => {
-      exportModal.classList.add('is-open');
-    });
+    exportHeaderBtn.addEventListener('click', () => exportModal.classList.add('is-open'));
   }
 
   if (closeExportBtn && exportModal) {
-    closeExportBtn.addEventListener('click', () => {
-      exportModal.classList.remove('is-open');
-    });
+    closeExportBtn.addEventListener('click', () => exportModal.classList.remove('is-open'));
+  }
+
+  if (cancelExportBtn && exportModal) {
+    cancelExportBtn.addEventListener('click', () => exportModal.classList.remove('is-open'));
   }
 
   if (confirmXlsxBtn) {
@@ -538,6 +790,7 @@ function initExportAndSettings() {
   const settingsBtn = document.getElementById('settings-btn');
   const settingsModal = document.getElementById('settings-modal');
   const closeSettingsBtn = document.getElementById('close-settings-modal');
+  const closeSettingsBottomBtn = document.getElementById('close-settings-modal-btn');
   const saveSettingsBtn = document.getElementById('save-settings-btn');
   const apiKeyInput = document.getElementById('settings-gemini-key');
 
@@ -550,9 +803,11 @@ function initExportAndSettings() {
   }
 
   if (closeSettingsBtn && settingsModal) {
-    closeSettingsBtn.addEventListener('click', () => {
-      settingsModal.classList.remove('is-open');
-    });
+    closeSettingsBtn.addEventListener('click', () => settingsModal.classList.remove('is-open'));
+  }
+
+  if (closeSettingsBottomBtn && settingsModal) {
+    closeSettingsBottomBtn.addEventListener('click', () => settingsModal.classList.remove('is-open'));
   }
 
   if (saveSettingsBtn && settingsModal) {
@@ -564,19 +819,18 @@ function initExportAndSettings() {
     });
   }
 
-  // Sluit modals bij klik op backdrop
   window.addEventListener('click', (e) => {
     if (e.target === exportModal) exportModal.classList.remove('is-open');
     if (e.target === settingsModal) settingsModal.classList.remove('is-open');
+    const authModal = document.getElementById('auth-modal');
+    if (e.target === authModal) authModal.classList.remove('is-open');
+    const dbModal = document.getElementById('db-modal');
+    if (e.target === dbModal) dbModal.classList.remove('is-open');
   });
 }
 
-/**
- * Handige sneltoetsen voor snelle navigatie.
- */
 function initKeyboardShortcuts() {
   document.addEventListener('keydown', (e) => {
-    // Negeer als gebruiker in een textarea of input typt
     if (['TEXTAREA', 'INPUT'].includes(document.activeElement.tagName)) {
       return;
     }
@@ -589,4 +843,12 @@ function initKeyboardShortcuts() {
       selectDate(getTodayDateString());
     }
   });
+}
+
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }

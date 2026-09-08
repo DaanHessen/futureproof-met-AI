@@ -1,40 +1,48 @@
-# Digitaal Dagboekje — Futureproof met AI!
+# Digitaal Dagboekje — Futureproof met AI! (met SQLite Database)
 
 Een modern, minimalistisch en responsief digitaal reflectie- en leerdagboek, ontwikkeld voor de minor **Futureproof met AI!** aan de **Hogeschool Utrecht (HU)**.
 
-Gebouwd met vanilla JavaScript (ES modules), moderne CSS met CSS-variabelen en semantische HTML5. Geen zware frameworks of build-stappen nodig: direct klaar voor hosting op **Vercel** via GitHub.
+Uitgerust met een **lokale SQLite database** (`dagboek.sqlite`), authenticatie (zonder e-mailbevestiging), een ingebouwde **Database Inspector & SQL Console**, een **10-dagen interactieve mood visualisatie**, dynamische **Google Gemini AI Dagspreuk** en **Excel export**.
 
 ---
 
 ## Inhoudsopgave
 1. [Overzicht van functionaliteiten](#overzicht-van-functionaliteiten)
-2. [User Stories uit Week 2](#user-stories-uit-week-2)
-3. [Lokale installatie & gebruik](#lokale-installatie--gebruik)
-4. [Publiceren naar Vercel (Stap-voor-stap)](#publiceren-naar-vercel-stap-voor-stap)
-5. [Google Gemini API Key instellen](#google-gemini-api-key-instellen)
-6. [Dataopslag: Vragen & Inzichten](#dataopslag-vragen--inzichten)
-7. [Modulaire opbouw (Aanpassingen maken)](#modulaire-opbouw-aanpassingen-maken)
-8. [Architectuur](#architectuur)
+2. [User Stories uit Week 2 (Slides 13, 14 & 15)](#user-stories-uit-week-2)
+3. [Lokale installatie & SQLite Starten](#lokale-installatie--sqlite-starten)
+4. [Werken met de SQLite Database (Slide 15)](#werken-met-de-sqlite-database-slide-15)
+5. [Publiceren naar Vercel](#publiceren-naar-vercel)
+6. [Google Gemini API Key instellen](#google-gemini-api-key-instellen)
+7. [Dataopslag: Vragen & Vergelijking](#dataopslag-vragen--vergelijking)
+8. [Modulaire opbouw (Aanpassingen maken)](#modulaire-opbouw-aanpassingen-maken)
+9. [Architectuur](#architectuur)
 
 ---
 
 ## Overzicht van functionaliteiten
 
-- **Reflecteren per datum**: Schakel soepel tussen vandaag, gisteren of eerdere dagen via de interactieve 7-dagen strip, pijltjesknoppen of de datumkiezer.
+- **Lokale SQLite Database**: Echte relationele database (`dagboek.sqlite`) beheerd via Node.js 22 built-ins (zero npm install required).
+- **Ingebouwde Database Inspector (🗄️ Database)**:
+  - Bekijk direct de tabel `entries` (Slide 15 item 5).
+  - Bekijk de tabel `users` en vind jezelf als geregistreerde gebruiker terug (Slide 15 item 6).
+  - Interactieve **SQL Console** om rechtstreeks `SELECT`-queries uit te voeren.
+  - Knop *"⚡ 5 Entries toevoegen"* (Slide 15 item 4) voor snelle initialisatie.
+  - Knop *"💾 Download DB"* om het `.sqlite` bestand te downloaden.
+- **Account & Authenticatie**: Registreer en log direct in zonder e-mailbevestiging (Slide 15 item 2 & 3).
+- **Reflecteren per datum**: Schakel soepel tussen vandaag, gisteren of eerdere dagen via de interactieve 7-dagen strip, pijltjesknoppen of datumkiezer.
 - **Gemoedstoestand (1 tot 5 sterren)**: Geef met één klik aan hoe je dag verloopt (van *Moeizaam* tot *Fantastisch*), inclusief visuele sterren en emoji's.
 - **Drie kernvragen voor persoonlijke groei**:
   1. *Wat heb ik gisteren gedaan?* (Activiteiten & terugblik)
   2. *Wat heb ik van gisteren geleerd?* (Reflectie & AI-inzichten)
   3. *Wat ga ik vandaag doen?* (Focus & doelen)
-- **Automatisch opslaan (Auto-save)**: Je invoer wordt tijdens het typen met een subtiele debounce direct en lokaal opgeslagen.
-- **10-Dagen Mood Horizon**: Een interactieve, responsieve SVG-grafiek die je gemoedstoestand over de afgelopen 10 dagen toont, inclusief trendanalyse en detectie van eventuele moodswings.
+- **Automatisch opslaan (Auto-save)**: Je invoer wordt tijdens het typen direct opgeslagen in zowel SQLite als LocalStorage.
+- **10-Dagen Mood Horizon**: Een responsieve SVG-grafiek die je gemoedstoestand over de afgelopen 10 dagen toont, inclusief trendanalyse en detectie van eventuele moodswings (Slide 14).
 - **AI Spreuk van de Dag**:
-  - Dynamisch gegenereerd door **Google Gemini AI** via een veilige Vercel Serverless Function (`/api/spreuk`).
-  - Knop *"Nieuwe spreuk"* om een nieuwe inspirerende quote op te halen.
-  - Intelligente fallback op een rijke verzameling Nederlandse quotes over AI, innovatie en veerkracht.
-- **Excel Export**: Download al je dagboeknotities naar een écht Microsoft Excel-bestand (`.xlsx`) of een geoptimaliseerd Nederlands CSV-bestand (met `;` scheidingsteken en UTF-8 BOM).
-- **Dark & Light Mode**: Schakel eenvoudig tussen een minimalistisch licht thema en een rustgevend donker thema (onthoudt voorkeur).
-- **Volledig responsief**: Werkt optimaal op desktop, tablet en mobiele telefoon.
+  - Dynamisch gegenereerd door **Google Gemini AI** via `/api/spreuk`.
+  - Knop *"Nieuwe spreuk"* voor een nieuw citaat.
+  - Slimme fallback met 15+ Nederlandstalige citaten over AI en persoonlijke groei.
+- **Excel Export**: Download al je notities naar een echt Microsoft Excel-bestand (`.xlsx`) of Nederlands CSV-bestand met `;`.
+- **Dark & Light Mode**: Schakel eenvoudig tussen een minimalistisch licht thema en rustgevend donker thema.
 
 ---
 
@@ -42,114 +50,97 @@ Gebouwd met vanilla JavaScript (ES modules), moderne CSS met CSS-variabelen en s
 
 Conform de opdrachten uit de presentatie (*Week 2 - Vibecoding v3*):
 
+### Slide 13 (Lovable prompt / Dagboekje)
 1. **Datumselectie**: *Als gebruiker wil ik eerst op een specifieke datum kunnen klikken, zodat ik de dagboekvragen voor die specifieke dag kan beantwoorden.*
 2. **Gemoedstoestand**: *Als gebruiker wil ik kunnen aangeven hoe het vandaag gaat met een score van 1 tot 5 sterren, zodat ik visueel inzicht krijg in mijn dagelijkse gemoedstoestand.*
 3. **Gisteren gedaan**: *Als gebruiker wil ik kunnen invullen wat ik gisteren heb gedaan, zodat ik een overzicht heb van mijn activiteiten.*
 4. **Gisteren geleerd**: *Als gebruiker wil ik kunnen invullen wat ik van gisteren heb geleerd, zodat ik bewust kan stilstaan bij mijn persoonlijke groei.*
 5. **Vandaag doen**: *Als gebruiker wil ik kunnen vastleggen wat ik vandaag ga doen, zodat ik met focus en een duidelijk doel aan mijn dag begin.*
-6. **Mood trend & moodswings**: *Als gebruiker wil ik kunnen zien hoe mijn mood zich ontwikkelt over de laatste 10 dagen, zodat ik inzicht krijg in eventuele moodswings.*
-7. **Spreuk van de dag**: *Als gebruiker wil ik dagelijks een inspirerende AI-spreuk zien en een knop hebben voor een nieuwe spreuk.*
-8. **Excel Download**: *Als gebruiker wil ik alle dagboek entries met één klik kunnen downloaden naar Excel.*
+
+### Slide 14 (Moodswings)
+6. **10-Dagen Moodverloop**: *Als gebruiker wil ik kunnen zien hoe mijn mood zich ontwikkelt over de laatste 10 dagen, zodat ik inzicht krijg in eventuele moodswings.*
+
+### Slide 15 (Werken met een database)
+7. **Database aanmaken**: Lokale SQLite database (`dagboek.sqlite`).
+8. **Registratie zonder emailbevestiging**: Direct registreren en inloggen.
+9. **5 Nieuwe entries**: Eenvoudig aanmaken of via de knop *"⚡ 5 Entries toevoegen"*.
+10. **Database inspectie**: Bekijk alle rijen in `entries` en vind jezelf terug in `users`.
 
 ---
 
-## Lokale installatie & gebruik
+## Lokale installatie & SQLite Starten
 
-Er zijn **geen build tools** (zoals npm, vite of webpack) vereist. Het project gebruikt moderne ES modules.
+Dankzij Node.js 22 zijn er **geen externe dependencies** nodig (`node:sqlite` zit ingebouwd in Node).
 
-### Optie 1: Direct in de browser openen
-Open `index.html` simpelweg in je webbrowser (Chrome, Brave, Firefox of Edge).
-
-### Optie 2: Lokale ontwikkelserver (aanbevolen voor ES Modules)
-Open een terminal in de projectmap en start een lokale webserver:
-
+### Start de lokale server met SQLite:
 ```bash
-# Met Python 3
-python3 -m http.server 3000
-
-# Of met Node (npx)
-npx serve .
+npm start
+# of: node server.js
 ```
 
-Ga vervolgens naar `http://localhost:3000` in je browser.
+Open vervolgens je browser op:
+👉 **`http://localhost:3000`**
 
 ---
 
-## Publiceren naar Vercel (Stap-voor-stap)
+## Werken met de SQLite Database (Slide 15)
 
-Zoals behandeld op slide 10 van het college:
+1. **Registreren & Inloggen**:
+   - Klik rechtsboven op **"Inloggen"**.
+   - Kies het tabblad **"Registreren (zonder email)"** of klik op **"⚡ Snelle demo login"**.
+   - Vul je e-mailadres en wachtwoord in en klik op **"Account Aanmaken"**. Je bent direct ingelogd!
+2. **Entries toevoegen**:
+   - Vul je dagboekvragen en sterren in voor vandaag of kies een datum.
+   - Of klik in de voettekst / Database Inspector op **"⚡ 5 Entries toevoegen"** om in één keer 5 representatieve dagen toe te voegen.
+3. **Database Inspecteren**:
+   - Klik bovenin op de knop **"🗄️ Database"**.
+   - **Tab `entries`**: Hier zie je alle opgeslagen dagboeknotities, mood scores en datums.
+   - **Tab `users`**: Hier vind je jezelf terug met je gebruikers-ID, e-mail en registratiedatum (aangegeven met een *"Jij"* badge).
+   - **Tab `SQL Console`**: Voer live queries uit zoals:
+     ```sql
+     SELECT date, mood, today_planned FROM entries WHERE mood >= 4;
+     ```
+
+---
+
+## Publiceren naar Vercel
 
 1. **GitHub Repository**:
-   De code staat al op je GitHub repository (`https://github.com/DaanHessen/futureproof-met-AI`).
-2. **Account bij Vercel**:
-   Ga naar [vercel.com](https://vercel.com) en log in met je GitHub-account.
-3. **Nieuw project importeren**:
-   - Klik op **"Add New..."** -> **"Project"**.
-   - Zoek naar de repository `futureproof-met-AI` en klik op **"Import"**.
-4. **Instellingen & Deploy**:
-   - Project Name: bijvoorbeeld `dagboek-futureproof`
-   - Framework Preset: **Other** (standaard statische HTML/JS)
-   - Root Directory: `./` (standaard)
+   De code staat op GitHub: [`https://github.com/DaanHessen/futureproof-met-AI`](https://github.com/DaanHessen/futureproof-met-AI).
+2. **Importeer in Vercel**:
+   - Ga naar [vercel.com](https://vercel.com) en klik op **"Add New..."** -> **"Project"**.
+   - Selecteer `futureproof-met-AI` en klik op **"Import"**.
+3. **Deploy**:
+   - Framework Preset: **Other**
    - Klik op **"Deploy"**.
-5. **Klaar!**
-   Vercel controleert je code en publiceert je website binnen enkele seconden naar een live `.vercel.app` URL.
 
 ---
 
 ## Google Gemini API Key instellen
 
-Zoals uitgelegd op slide 11 & 12 van het college:
-
-### Waarom een Environment Variable?
-Een API-sleutel mag **nooit** direct in de frontend JavaScript code gezet worden. Als je code op GitHub staat, kan iedereen je sleutel kopiëren en jouw Google AI tokens verbruiken. 
-
-In dit project wordt de sleutel veilig beheerd via een serverloze backend-functie (`/api/spreuk.js`), die op de servers van Vercel draait en niet toegankelijk is voor bezoekers.
-
-### Stap-voor-stap in Vercel instellen:
-1. Haal een gratis API-sleutel op via [Google AI Studio](https://aistudio.google.com/).
-2. Ga in Vercel naar je project dashboard.
-3. Klik op **Settings** -> **Environment Variables**.
-4. Voeg een nieuwe variabele toe:
-   - **Key**: `GEMINI_API_KEY`
-   - **Value**: Plak hier je sleutel (bijv. `AIzaSy...`)
-   - **Environments**: Vink *Production*, *Preview* en *Development* aan.
-5. Klik op **Save**.
-6. Trigger een her-deploy (of doe een nieuwe commit) zodat Vercel de nieuwe variabele inlaadt.
-
-*Tip: Als je lokaal test zonder Vercel, kun je via het tandwiel-icoontje (rechtsboven) ook tijdelijk lokaal een API-sleutel invullen.*
+1. Haal een gratis API key op via [Google AI Studio](https://aistudio.google.com/).
+2. Stel deze in Vercel in onder **Project Settings** -> **Environment Variables**:
+   - Key: `GEMINI_API_KEY`
+   - Value: `AIzaSy...`
+3. Her-deploy. De serverless endpoint `/api/spreuk` genereert nu dagelijks verse quotes met Gemini AI!
 
 ---
 
-## Dataopslag: Vragen & Inzichten
+## Dataopslag: Vragen & Vergelijking
 
-Uit Slide 7 van de les:
-
-### 1. Waar staat je data nu?
-De dagboek-data wordt bewaard in de **LocalStorage** van je eigen webbrowser.
-Je kunt dit zelf inspecteren:
-- Druk op `F12` in je browser (of rechtermuisknop -> *Inspecteren*).
-- Ga naar het tabblad **Applicatie** (Chrome/Brave) of **Opslag** (Firefox).
-- Klik in het linkermenu onder **Lokale opslag** (Local Storage) op je website-URL.
-- Je ziet daar de sleutel `fp_dagboek_entries_v1` staan met een JSON-object van al jouw dagelijkse antwoorden!
-
-### 2. Wat is het voordeel van deze opslag?
-- **Privacy & Veiligheid**: Je persoonlijke gedachten, reflecties en gemoedstoestand blijven 100% op jouw eigen apparaat. Er gaat geen persoonlijke tekst naar externe databases of cloudaanbieders.
-- **Snelheid**: Data wordt direct in fracties van milliseconden opgeslagen en ingeladen.
-- **Offline beschikbaar**: De app werkt ook vlekkeloos zonder internetverbinding (bijvoorbeeld in de trein).
-- **Geen onderhoudskosten**: Er is geen dure externe database-server nodig.
-
-### 3. Wat is het nadeel van deze opslag?
-- **Niet gesynchroniseerd over meerdere apparaten**: Notities die je op je laptop maakt, zijn niet automatisch zichtbaar op je telefoon.
-- **Kans op dataverlies bij browseropruiming**: Als je je browsergeschiedenis/sitegegevens wist, kan ook de LocalStorage gewist worden.
-  - *Oplossing*: Gebruik regelmatig de knop **"Excel Export"** om een veilige backup op te slaan!
+| Eigenschap | LocalStorage | SQLite (`dagboek.sqlite`) |
+| :--- | :--- | :--- |
+| **Locatie** | Browser client-side | Lokaal bestand op server/schijf |
+| **Datamodel** | Sleutel/waarde (JSON strings) | Gestructureerd relationeel (SQL tabellen, foreign keys) |
+| **Relaties (Users/Entries)** | Handmatig parsen | Automatisch via `FOREIGN KEY (user_id) REFERENCES users(id)` |
+| **Query mogelijkheden** | JavaScript filter/map | Volledige SQL (`SELECT`, `JOIN`, `WHERE`, `GROUP BY`) |
+| **Backups** | Afhankelijk van browser cache | Eenvoudig bestand kopiëren (`dagboek.sqlite`) |
 
 ---
 
 ## Modulaire opbouw (Aanpassingen maken)
 
-Wil je nieuwe vragen toevoegen of bestaande vragen herformuleren? Dat kan in één enkel bestand!
-
-Open [`js/questions.js`](file:///home/daanh/Projects/code/school/futureproof-met-ai/dagboek/js/questions.js):
+Wil je nieuwe reflectievragen toevoegen? Open [`js/questions.js`](file:///home/daanh/Projects/code/school/futureproof-met-ai/dagboek/js/questions.js):
 
 ```javascript
 export const journalQuestions = [
@@ -161,12 +152,9 @@ export const journalQuestions = [
     subtitle: "Geef een overzicht van je activiteiten...",
     placeholder: "Beschrijf kort...",
     rows: 4
-  },
-  // Voeg hier eenvoudig een vraag 04 toe!
+  }
 ];
 ```
-
-De applicatie past zich automatisch aan: de nieuwe vraag verschijnt direct in de gebruikersinterface, wordt meegenomen in de auto-save en belandt automatisch in de geëxporteerde Excel-kolommen.
 
 ---
 
@@ -174,20 +162,26 @@ De applicatie past zich automatisch aan: de nieuwe vraag verschijnt direct in de
 
 ```
 dagboek/
-├── index.html          # Semantische HTML5 hoofdstructuur
+├── server.js           # Lokale Node.js 22 HTTP server & REST API
+├── db.js               # SQLite DatabaseSync manager & schema migraties
+├── dagboek.sqlite      # SQLite database bestand (automatisch aangemaakt)
+├── index.html          # Semantische HTML5 layout met Database Inspector & Modals
+├── package.json        # Start scripts (zero npm dependencies)
 ├── css/
-│   └── style.css       # Design tokens, typografie, responsieve layout & animaties
+│   └── style.css       # Design tokens, responsieve layout & database tabellen
 ├── js/
-│   ├── app.js          # Coördinatie, events, datepicker en formulieren
+│   ├── app.js          # Coördinatie, formulierverwerking, auth & database events
 │   ├── questions.js    # Modulaire vraag- en mood-definities
-│   ├── storage.js      # LocalStorage beheer, statistieken en Excel export
+│   ├── storage.js      # SQLite backend synchronisatie, LocalStorage & Excel export
 │   ├── mood-chart.js   # 10-Dagen interactieve SVG mood curve & trendanalyse
-│   └── quotes.js       # AI spreukgenerator met Google Gemini & curated fallbacks
+│   └── quotes.js       # AI spreukgenerator met Google Gemini & fallbacks
 ├── api/
-│   └── spreuk.js       # Vercel Serverless Function voor veilige Google AI Studio aanroep
-├── vercel.json         # Vercel configuratie
+│   ├── spreuk.js       # Vercel Serverless Function voor Gemini AI
+│   └── db.js           # Vercel Serverless Function voor database inspectie
+├── vercel.json         # Vercel deployment configuratie
 ├── .gitignore          # Git uitsluitingen
-└── README.md           # Deze documentatie
+├── README.md           # Deze documentatie
+└── DOCUMENTATIE.md     # Technische verantwoording & didactische reflectie
 ```
 
 ---
