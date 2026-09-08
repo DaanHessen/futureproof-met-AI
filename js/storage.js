@@ -7,6 +7,7 @@
 const STORAGE_KEY = 'fp_dagboek_entries_v1';
 const SETTINGS_KEY = 'fp_dagboek_settings_v1';
 const AUTH_KEY = 'fp_dagboek_auth_v1';
+export const SUPABASE_DEFAULT_URL = 'https://peeduaywnjygplzxltzf.supabase.co';
 export const SUPABASE_DEFAULT_KEY = 'sb_publishable_weJ_CCPc8r7-8Vu7IFP0nQ_JDBH-K7Q';
 
 let cachedUser = null;
@@ -17,7 +18,7 @@ export function getSupabaseClient() {
   if (supabaseInstance) return supabaseInstance;
   if (!window.supabase) return null;
 
-  let url = localStorage.getItem('fp_supabase_url') || '';
+  let url = localStorage.getItem('fp_supabase_url') || SUPABASE_DEFAULT_URL;
   const key = localStorage.getItem('fp_supabase_key') || SUPABASE_DEFAULT_KEY;
 
   if (!url) return null;
@@ -205,7 +206,8 @@ export async function syncEntriesFromBackend() {
       }
     }
   } catch (e) {
-    // backend offline
+    // backend offline of op Vercel: haal direct synchroon op van Supabase Cloud
+    await fetchEntriesFromSupabase().catch(() => {});
   }
 }
 
